@@ -1,5 +1,5 @@
-const sharp = require('sharp')
-const axios = require('axios')
+import sharp from 'sharp';
+import axios from 'axios';
 
 async function loadImageFromURL(url) {
   if (!url) return null;
