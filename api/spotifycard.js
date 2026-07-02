@@ -139,4 +139,4 @@ async function drawCardSpotify({ bg, cover, title, artist }) {
   return finalBuffer;
 }
 
-module.exports = { SpotifyDl };
+export { drawCardSpotify };
