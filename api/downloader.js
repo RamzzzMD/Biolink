@@ -75,10 +75,18 @@ export async function getTrack(inputUrl) {
   const parsed = parseSpotify(inputUrl);
   const referer = `${BASE_URL}/en/${parsed.type}/${parsed.id}/`;
   await warmup(parsed);
-
   const sig = await getSignature("get_playlist", { id: parsed.id, type: parsed.type, lang: LANG }, referer);
-  const playlist = await requestJson(`${BASE_URL}/api/get_playlist.php?id=${encodeURIComponent(parsed.id)}&type=${encodeURIComponent(parsed.type)}&lang=${encodeURIComponent(LANG)}`, { "x-pe": String(sig.data.exp), "x-pt": String(sig.data.token) }, referer);
+  
+  if (!sig || !sig.data || !sig.data.token) {
+      console.error("Gagal mendapatkan signature:", sig);
+      throw new Error("Gagal mengambil data dari Spotify (Mungkin diblokir/API berubah)");
+  }
 
+  // Lanjutkan proses jika aman
+  const playlist = await requestJson(`${BASE_URL}/api/get_playlist.php?id=${encodeURIComponent(parsed.id)}&type=${encodeURIComponent(parsed.type)}&lang=${encodeURIComponent(LANG)}`, { 
+      "x-pe": String(sig.data.exp), 
+      "x-pt": String(sig.data.token) 
+  }, referer);
   const track = playlist.data.tracks[0];
   const dlSig = await getSignature("download_track", { lang: LANG, id: String(track.id), name: String(track.name), duration_ms: String(track.duration_ms) }, `${BASE_URL}/en/track/${track.id}/`);
   
