@@ -3,30 +3,29 @@ import axios from 'axios';
 export default async function handler(req, res) {
     const { url } = req.query;
     
-    if (!url) {
-        return res.status(400).json({ error: "URL lagu tidak ditemukan" });
-    }
+    if (!url) return res.status(400).json({ error: "URL tidak ditemukan" });
 
     try {
-        // Nyamar jadi browser untuk download lagunya sebagai "stream"
+        // Kita tambahkan Referer dan Origin agar dianggap request sah dari Spotify
         const response = await axios({
             method: 'GET',
             url: decodeURIComponent(url),
-            responseType: 'stream', // Ini kunci utamanya biar audionya jalan!
+            responseType: 'stream',
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-                'Accept': 'audio/webm,audio/ogg,audio/wav,audio/*;q=0.9,application/ogg;q=0.7,video/*;q=0.6,*/*;q=0.5'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+                'Referer': 'https://open.spotify.com/', 
+                'Origin': 'https://open.spotify.com',
+                'Accept': '*/*',
+                'Connection': 'keep-alive'
             }
         });
 
-        // Kasih tau frontend kalau ini adalah file audio yang aman
         res.setHeader('Content-Type', response.headers['content-type'] || 'audio/mpeg');
-        res.setHeader('Access-Control-Allow-Origin', '*'); 
+        res.setHeader('Access-Control-Allow-Origin', '*');
         
-        // Alirkan audionya ke frontend React kamu
         response.data.pipe(res);
     } catch (error) {
-        console.error("Proxy error:", error.message);
-        res.status(500).json({ error: "Gagal mengambil stream lagu" });
+        console.error("Proxy Error:", error.message);
+        res.status(500).json({ error: "Gagal memutar lagu: Akses ditolak oleh server Spotify." });
     }
 }
