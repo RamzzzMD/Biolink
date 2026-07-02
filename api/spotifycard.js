@@ -1,12 +1,6 @@
 delete process.env.FONTCONFIG_PATH;
 delete process.env.FONTCONFIG_FILE;
 
-const originalStdErr = process.stderr.write;
-process.stderr.write = (chunk, ...args) => {
-  if (chunk.toString().includes('Fontconfig')) return true;
-  return originalStdErr.apply(process.stderr, [chunk, ...args]);
-};
-
 import sharp from 'sharp';
 import axios from 'axios';
 
