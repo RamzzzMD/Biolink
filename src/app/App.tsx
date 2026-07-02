@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
-const CORS_PROXY = "https://cors.rifkyshre.biz.id/";
-
 /* ─── Types ─────────────────────────────────────────────────── */
 interface Link {
   id: string;
@@ -371,7 +369,7 @@ function SpotifyWidget({ dark }: { dark: boolean }) {
           
           <audio 
             ref={audioRef}
-            src={`${CORS_PROXY}${data.audioUrl}`} 
+            src={`/api/proxy?url=${encodeURIComponent(data.audioUrl)}`} 
             controls 
             autoPlay
             onPlay={() => setPlaying(true)}
