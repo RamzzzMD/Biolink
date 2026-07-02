@@ -318,7 +318,7 @@ function Loader({ onDone }: { onDone: () => void }) {
 }
 
 /* ─── Spotify Widget ─────────────────────────────────────────── */
-export default function SpotifyWidget({ dark }: { dark: boolean }) {
+function SpotifyWidget({ dark }: { dark: boolean }) {
   const [data, setData] = useState<any>(null);
   const [playing, setPlaying] = useState(false);
   const [input, setInput] = useState(""); // State buat nampung ketikan pencarian
