@@ -1,6 +1,6 @@
-const axios = require("axios");
+import axios from 'axios';
 
-async function SpotifyDl(url) {
+export async function SpotifyDl(url) {
   try {
     const { data: pp } = await axios.post('https://gamepvz.com/api/download/get-url', {
       url: url
