@@ -6,7 +6,6 @@ export default async function handler(req, res) {
     if (!url) return res.status(400).json({ error: "URL tidak ditemukan" });
 
     try {
-        // Kita pakai header minimalis agar server download nggak curiga
         const response = await axios({
             method: 'GET',
             url: decodeURIComponent(url),
@@ -16,11 +15,15 @@ export default async function handler(req, res) {
             }
         });
 
-        // Terusin header dari server aslinya (penting buat audio streaming)
+        // Pastikan header hanya di-set jika nilainya ada
         res.setHeader('Content-Type', response.headers['content-type'] || 'audio/mpeg');
-        res.setHeader('Content-Length', response.headers['content-length']);
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Accept-Ranges', 'bytes');
+        
+        // FIX: Cek dulu apakah ada content-length sebelum di-set
+        if (response.headers['content-length']) {
+            res.setHeader('Content-Length', response.headers['content-length']);
+        }
         
         response.data.pipe(res);
     } catch (error) {
