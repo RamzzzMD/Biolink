@@ -631,7 +631,7 @@ export default function App() {
                   }}>
                     {/* Foto profil baru kamu */}
                     <img 
-                      src="https://raw.githubusercontent.com/RamzzzMD/uploader-web/refs/heads/main/uploads/WhatsApp%20Image%202026-07-02%20at%2014.58.09.jpeg" 
+                      src="https://raw.githubusercontent.com/RamzzzMD/uploader-web/refs/heads/main/uploads/WhatsApp%20Image%202026-07-02%20at%2019.11.09.jpeg" 
                       alt="Ranzz" 
                       style={{ width: "100%", height: "100%", objectFit: "cover" }}
                     />
