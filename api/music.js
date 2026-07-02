@@ -26,7 +26,7 @@ export default async function handler(req, res) {
             success: true,
             title: track.name,
             artist: track.artists.map(a => a.name).join(', '),
-            audioUrl: audioUrl,
+            const audioUrl = dl.downloadUrl || dl.url || dl.link;
             coverImage: track.album.images[0].url // Ngirim link cover Spotify asli
         });
     } catch (e) {
