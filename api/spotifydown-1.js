@@ -104,3 +104,5 @@ export async function getTrack(inputUrl) {
 
   return { buffer: dl.buffer, title: track.name };
 }
+
+export { SpotifyDl };
