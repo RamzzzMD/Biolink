@@ -22,4 +22,4 @@ async function SpotifyDl(url) {
   }
 }
 
-module.exports = { drawCardSpotify };
+export { SpotifyDl };
