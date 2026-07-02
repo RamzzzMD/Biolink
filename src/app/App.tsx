@@ -318,38 +318,47 @@ function Loader({ onDone }: { onDone: () => void }) {
 /* ─── Spotify Widget ─────────────────────────────────────────── */
 function SpotifyWidget({ dark }: { dark: boolean }) {
   const [data, setData] = useState<any>(null);
-  const [search, setSearch] = useState("");
+  const [input, setInput] = useState("");
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  const fetchMusic = async (query = "", id = "") => {
-    const url = query ? `/api/music?search=${encodeURIComponent(query)}` : (id ? `/api/music?id=${id}` : '/api/music');
-    const res = await fetch(url).then(r => r.json());
-    if (res.success) setData(res);
+  const loadMusic = async (query: string) => {
+    setData(null); // Reset loading
+    const res = await fetch(`/api/music?q=${encodeURIComponent(query)}`);
+    const json = await res.json();
+    if (json.success) setData(json);
   };
 
-  useEffect(() => { fetchMusic(); }, []); // Load default saat pertama kali
+  useEffect(() => { loadMusic("BABYMONSTER CHOOM"); }, []);
 
   return (
-    <div className="flex flex-col items-center gap-3 my-6 w-full max-w-sm mx-auto p-4 rounded-3xl border border-white/10 bg-black/20 backdrop-blur-lg">
-      {data && (
-        <>
-          <img src={data.cardImage} className="rounded-xl w-40 shadow-xl" alt="Cover" />
-          <p className="text-white font-bold text-sm text-center">{data.title}</p>
+    <div className={`mt-4 p-4 rounded-2xl border ${dark ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'} backdrop-blur-md w-full max-w-sm`}>
+      {data ? (
+        <div className="flex flex-col items-center gap-3">
+          <img src={data.cardImage} className="rounded-xl w-40 shadow-lg" alt="Cover" />
+          <div className="text-center">
+            <h4 className={`font-bold ${dark ? 'text-white' : 'text-black'}`}>{data.title}</h4>
+            <p className="text-xs opacity-70">{data.artist}</p>
+          </div>
           <audio ref={audioRef} src={data.audioUrl} />
-          <button onClick={() => { playing ? audioRef.current?.pause() : audioRef.current?.play(); setPlaying(!playing); }} className="text-cyan-400 font-bold">
+          <button 
+            onClick={() => { playing ? audioRef.current?.pause() : audioRef.current?.play(); setPlaying(!playing); }}
+            className="text-cyan-400 font-bold text-sm"
+          >
             {playing ? "⏸ Pause" : "▶ Play"}
           </button>
-        </>
+        </div>
+      ) : (
+        <p className="text-center text-sm opacity-50">Sedang memuat lagu...</p>
       )}
-      
-      <div className="flex gap-2 w-full mt-2">
+
+      <div className="flex gap-2 mt-4">
         <input 
-          placeholder="Cari lagu..." 
-          className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-white"
-          value={search} onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 bg-black/20 rounded-full px-4 py-2 text-sm text-white"
+          placeholder="Cari lagu lain..."
+          onChange={(e) => setInput(e.target.value)}
         />
-        <button onClick={() => fetchMusic(search)} className="bg-cyan-500/20 px-4 py-2 rounded-full text-cyan-400 text-sm">Cari</button>
+        <button onClick={() => loadMusic(input)} className="bg-cyan-500/20 text-cyan-400 px-4 rounded-full text-sm">Cari</button>
       </div>
     </div>
   );
