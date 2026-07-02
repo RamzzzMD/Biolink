@@ -370,3 +370,5 @@ class Spotify {
     }
   }
 }
+
+module.exports = { Spotify };
