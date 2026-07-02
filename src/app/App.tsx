@@ -318,41 +318,61 @@ function Loader({ onDone }: { onDone: () => void }) {
 /* ─── Spotify Widget ─────────────────────────────────────────── */
 function SpotifyWidget({ dark }: { dark: boolean }) {
   const [data, setData] = useState<any>(null);
-  const [input, setInput] = useState("");
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const hasStarted = useRef(false); // Penanda biar musik cuma auto-play sekali
 
   const loadMusic = async (query: string) => {
-    setData(null); // Reset loading
     const res = await fetch(`/api/music?q=${encodeURIComponent(query)}`);
     const json = await res.json();
     if (json.success) setData(json);
   };
 
-  useEffect(() => { loadMusic("BABYMONSTER CHOOM"); }, []);
+  // Fungsi untuk trigger play
+  const triggerPlay = () => {
+    if (!hasStarted.current && audioRef.current) {
+      audioRef.current.play().then(() => {
+        setPlaying(true);
+        hasStarted.current = true;
+      }).catch(err => console.log("Menunggu interaksi user:", err));
+    }
+  };
+
+  useEffect(() => {
+    // 1. Load data saat web dibuka
+    loadMusic("BABYMONSTER CHOOM");
+
+    // 2. Pasang pendengar klik di seluruh dokumen
+    // Musik akan otomatis bunyi saat user pertama kali klik di mana saja di web
+    document.addEventListener('click', triggerPlay);
+    
+    return () => {
+      document.removeEventListener('click', triggerPlay);
+    };
+  }, []);
 
   return (
-    <div className={`mt-4 p-4 rounded-2xl border ${dark ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'} backdrop-blur-md w-full max-w-sm`}>
+    <div className={`mt-6 p-6 rounded-3xl border ${dark ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'} backdrop-blur-md w-full max-w-sm mx-auto flex flex-col items-center gap-4`}>
       {data ? (
-        <div className="flex flex-col items-center gap-3">
-          <img src={data.cardImage} className="rounded-xl w-40 shadow-lg" alt="Cover" />
+        <>
+          <img src={data.cardImage} className="rounded-xl w-40 shadow-2xl" alt="Cover" />
           <div className="text-center">
             <h4 className={`font-bold ${dark ? 'text-white' : 'text-black'}`}>{data.title}</h4>
-            <p className="text-xs opacity-70">{data.artist}</p>
+            <p className="text-xs opacity-60">{data.artist}</p>
           </div>
           <audio ref={audioRef} src={data.audioUrl} />
           <button 
             onClick={() => { playing ? audioRef.current?.pause() : audioRef.current?.play(); setPlaying(!playing); }}
-            className="text-cyan-400 font-bold text-sm"
+            className="text-cyan-400 font-bold text-sm bg-cyan-500/10 px-4 py-2 rounded-full"
           >
             {playing ? "⏸ Pause" : "▶ Play"}
           </button>
-        </div>
+        </>
       ) : (
-        <p className="text-center text-sm opacity-50">Sedang memuat lagu...</p>
+        <p className="text-sm opacity-50">Memuat CHOOM...</p>
       )}
 
-      <div className="flex gap-2 mt-4">
+      <div className="flex w-full gap-2 pt-2 border-t border-white/10">
         <input 
           className="flex-1 bg-black/20 rounded-full px-4 py-2 text-sm text-white"
           placeholder="Cari lagu lain..."
