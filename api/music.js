@@ -1,7 +1,7 @@
 // api/music.js
 import { Spotify } from './spotify.js';
 import { drawCardSpotify } from './spotifycard.js';
-import { spotifyDownload } from './downloader.js';
+import { spowload } from './downloader.js';
 
 const spotify = new Spotify();
 
@@ -16,14 +16,12 @@ export default async function handler(req, res) {
             return res.status(404).json({ success: false, message: "Lagu tidak ditemukan" });
         }
 
-        // ==========================================
-        // PERBAIKAN DI SINI: Rakit ulang URL yang benar
-        // ==========================================
+        // PERBAIKAN: Menggunakan template literal yang benar (${})
+        // dan menggunakan link Spotify open.spotify.com agar lebih valid
         const cleanUrl = `https://open.spotify.com/track/${track.id}`;
-        console.log("URL Bersih yang akan didownload:", cleanUrl);
+        console.log("Downloading from:", cleanUrl);
 
-        // Gunakan cleanUrl, bukan track.url
-        const dl = await spotifyDownload(cleanUrl); 
+        const dl = await spowload(cleanUrl); 
 
         if (!dl.Status) {
             return res.status(500).json({ success: false, message: "Gagal mendownload lagu" });
