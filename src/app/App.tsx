@@ -364,15 +364,14 @@ function SpotifyWidget({ dark }: { dark: boolean }) {
               
           {/* Tampilkan Judul dan Artis pakai teks HTML murni (Pasti rapi & font ngikutin web) */}
           <div className="text-left w-full mt-4 px-2">
-                  <h2 className="text-white font-bold text-xl truncate">{data.title}</h2>
-                  <p className="text-white/80 text-sm truncate">{data.artist}</p>
-              </div>
+              <h2 className="text-white font-bold text-xl truncate">{data.title}</h2>
+              <p className="text-white/80 text-sm truncate">{data.artist}</p>
           </div>
           <audio 
-            src={`${CORS_PROXY}${encodeURIComponent(data.audioUrl)}`} 
-            controls 
-            autoPlay 
-            className="mt-4"
+              src={`${CORS_PROXY}${encodeURIComponent(data.audioUrl)}`} 
+              controls 
+              autoPlay
+              className="mt-4 w-full"
           />
           <button 
             onClick={() => { playing ? audioRef.current?.pause() : audioRef.current?.play(); setPlaying(!playing); }}
