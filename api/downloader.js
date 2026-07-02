@@ -22,6 +22,8 @@ export async function spotifyDownload(url) {
     const metadata = response.data?.data?.metadata || null;
 
     if (!metadata?.download) {
+      // Tambahkan baris ini biar kita tahu apa pesan error dari servernya
+      console.log("Respon asli MusicFab:", JSON.stringify(response.data)); 
       throw new Error("Gagal mendapatkan link download dari server.");
     }
 
