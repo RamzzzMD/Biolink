@@ -371,4 +371,4 @@ class Spotify {
   }
 }
 
-module.exports = { Spotify };
+export { Spotify };
