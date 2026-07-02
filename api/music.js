@@ -1,11 +1,11 @@
+// api/music.js
 import { Spotify } from './spotify.js';
 import { drawCardSpotify } from './spotifycard.js';
-import { getTrack } from './downloader.js'; // Menggunakan scraper full-song
+import { spotifyDownload } from './downloader.js'; // Pastikan sesuai nama export di downloader.js
 
 const spotify = new Spotify();
 
 export default async function handler(req, res) {
-    // Menangkap query pencarian atau menggunakan default
     const query = req.query.q || "BABYMONSTER CHOOM"; 
     
     try {
@@ -17,9 +17,12 @@ export default async function handler(req, res) {
             return res.status(404).json({ success: false, message: "Lagu tidak ditemukan" });
         }
 
-        // 2. Download Full Track menggunakan downloader.js
-        // getTrack mengembalikan objek { buffer, title }
-        const dl = await getTrack(track.url); 
+        // 2. Download menggunakan downloader.js (Fungsi spotifyDownload)
+        const dl = await spotifyDownload(track.url); 
+
+        if (!dl.Status) {
+            return res.status(500).json({ success: false, message: "Gagal mendownload lagu" });
+        }
 
         // 3. Generate Card Image
         const cardBuffer = await drawCardSpotify({
@@ -28,13 +31,13 @@ export default async function handler(req, res) {
             artist: track.artists.map(a => a.name).join(', ')
         });
         
-        // 4. Kirim respons JSON ke Frontend
+        // 4. Kirim respons
         res.status(200).json({
             success: true,
             title: track.name,
             artist: track.artists.map(a => a.name).join(', '),
-            // Mengirim audio dalam format base64
-            audioBase64: dl.buffer.toString('base64'),
+            // Kirim link URL langsung (jauh lebih ringan & aman daripada base64)
+            audioUrl: dl.Result_url,
             cardImage: `data:image/png;base64,${cardBuffer.toString('base64')}`
         });
     } catch (e) {
