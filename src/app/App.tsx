@@ -316,71 +316,29 @@ function Loader({ onDone }: { onDone: () => void }) {
 }
 
 /* ─── Spotify Widget ─────────────────────────────────────────── */
-function SpotifyWidget({ dark }: { dark: boolean }) {
-  const [musicData, setMusicData] = useState<any>(null);
+function SpotifyWidget() {
+  const [data, setData] = useState<any>(null);
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
-    // Karena udah di Vercel, cukup panggil path /api/music
-    fetch('/api/music')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) setMusicData(data);
-      })
-      .catch((err) => console.error("Gagal load lagu:", err));
+    fetch('/api/music').then(res => res.json()).then(setData);
   }, []);
 
-  if (!musicData) return (
-    <div className="fade-up my-4 text-sm font-medium" style={{ animationDelay: "0.30s", color: dark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }}>
-      Sedang memuat lagu...
-    </div>
-  );
-
-  const togglePlay = () => {
-    if (audioRef.current) {
-      if (playing) audioRef.current.pause();
-      else audioRef.current.play();
-      setPlaying(!playing);
-    }
-  };
+  if (!data) return null;
 
   return (
-    <div className="fade-up w-full mt-2 mb-4 flex flex-col items-center gap-3" style={{ animationDelay: "0.30s" }}>
-      <img 
-        src={musicData.cardImage} 
-        alt="Spotify Card" 
-        style={{ 
-          width: "280px", 
-          borderRadius: "20px", 
-          boxShadow: dark ? "0 10px 30px rgba(0,0,0,0.5)" : "0 10px 30px rgba(0,0,0,0.15)" 
-        }} 
-      />
-      
-      <audio 
-        ref={audioRef} 
-        src={musicData.audioUrl} 
-        onEnded={() => setPlaying(false)} 
-      />
-
+    <div className="flex flex-col items-center gap-4 my-6 animate-in fade-in zoom-in duration-500">
+      <img src={data.cardImage} className="rounded-2xl shadow-2xl w-64 border border-white/10" alt="Music" />
+      <audio ref={audioRef} src={data.audioUrl} />
       <button 
-        onClick={togglePlay}
-        style={{
-          padding: "10px 24px",
-          borderRadius: "99px",
-          background: dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)",
-          border: `1px solid ${dark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.1)"}`,
-          color: dark ? "#00f5ff" : "#bf00ff", // Nyambung sama aksen warna kamu
-          fontWeight: 600,
-          fontFamily: "'Space Grotesk', sans-serif",
-          cursor: "pointer",
-          backdropFilter: "blur(10px)",
-          transition: "all 0.2s ease"
+        onClick={() => {
+          playing ? audioRef.current?.pause() : audioRef.current?.play();
+          setPlaying(!playing);
         }}
-        onMouseEnter={(e) => e.currentTarget.style.background = dark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.1)"}
-        onMouseLeave={(e) => e.currentTarget.style.background = dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)"}
+        className="px-6 py-2 rounded-full border border-cyan-500/30 bg-black/40 backdrop-blur-md text-cyan-400 font-bold hover:bg-cyan-500/20 transition-all"
       >
-        {playing ? "⏸ Pause" : "▶ Play"}
+        {playing ? "⏸ Pause" : "▶ Play Music"}
       </button>
     </div>
   );
