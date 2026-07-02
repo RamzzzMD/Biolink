@@ -1,6 +1,8 @@
 import sharp from 'sharp';
 import axios from 'axios';
 
+process.env.FONTCONFIG_PATH = '/etc/fonts';
+
 async function loadImageFromURL(url) {
   if (!url) return null;
   if (Buffer.isBuffer(url)) return url;
