@@ -354,18 +354,25 @@ function SpotifyWidget({ dark }: { dark: boolean }) {
   }, []);
 
   return (
-    <div className={`mt-6 p-6 rounded-3xl border ${dark ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'} backdrop-blur-md w-full max-w-sm mx-auto flex flex-col items-center gap-4`}>
-      {data ? (
-        <>
-          <img src={data.cardImage} className="rounded-xl w-40 shadow-2xl" alt="Cover" />
-          <div className="text-center">
-            <h4 className={`font-bold ${dark ? 'text-white' : 'text-black'}`}>{data.title}</h4>
-            <p className="text-xs opacity-60">{data.artist}</p>
+    <div className="bg-red-700 rounded-[20px] p-5 w-[280px] h-[380px] flex flex-col items-center justify-between">
+         {/* Tampilkan Cover Asli Spotify */}
+           <img 
+            src={data.coverImage} 
+             alt={data.title} 
+             className="w-[240px] h-[240px] object-cover rounded-lg shadow-lg mt-2"
+           />
+              
+          {/* Tampilkan Judul dan Artis pakai teks HTML murni (Pasti rapi & font ngikutin web) */}
+          <div className="text-left w-full mt-4 px-2">
+                  <h2 className="text-white font-bold text-xl truncate">{data.title}</h2>
+                  <p className="text-white/80 text-sm truncate">{data.artist}</p>
+              </div>
           </div>
           <audio 
             src={`${CORS_PROXY}${encodeURIComponent(data.audioUrl)}`} 
             controls 
             autoPlay 
+            className="mt-4"
           />
           <button 
             onClick={() => { playing ? audioRef.current?.pause() : audioRef.current?.play(); setPlaying(!playing); }}
