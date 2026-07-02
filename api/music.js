@@ -1,4 +1,5 @@
-// api/music.js
+process.removeAllListeners('warning');
+
 import { Spotify } from './spotify.js';
 import { drawCardSpotify } from './spotifycard.js';
 import { downr } from './downloader.js';
