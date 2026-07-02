@@ -46,7 +46,7 @@ const escapeXml = (unsafe) => (unsafe || "").replace(/[<>&'"]/g, c => {
 });
 
 
-async function drawCardSpotify({ bg, cover, title, artist }) {
+export async function drawCardSpotify({ bg, cover, title, artist }) {
   const width = 320;
   const height = 420;
   const cardX = 20;
