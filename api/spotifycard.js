@@ -2,6 +2,7 @@ import sharp from 'sharp';
 import axios from 'axios';
 
 process.env.FONTCONFIG_PATH = '/dev/null';
+process.env.FONTCONFIG_FILE = '/dev/null';
 
 async function loadImageFromURL(url) {
   if (!url) return null;
