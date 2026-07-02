@@ -320,26 +320,23 @@ function SpotifyWidget() {
   const [data, setData] = useState<any>(null);
   const [playing, setPlaying] = useState(false);
   const [input, setInput] = useState("");
-  const [isSearchOpen, setIsSearchOpen] = useState(false); // State buat buka-tutup kolom pencarian
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const hasStarted = useRef(false);
 
   const loadMusic = async (query: string) => {
-    // Biar ada efek loading
-    setData((prev: any) => prev ? { ...prev, loading: true } : null);
+    // 1. Kasih tau UI kalau kita lagi loading
+    setData((prev: any) => prev ? { ...prev, loading: true } : { loading: true });
+    
     try {
       const res = await fetch(`/api/music?q=${encodeURIComponent(query)}`);
       const json = await res.json();
+      
       if (json.success) {
+        // 2. Set data baru tanpa setTimeout. Audio tag akan otomatis play.
         setData({ ...json, loading: false });
-        // Otomatis play kalau lagu baru berhasil dicari
-        setTimeout(() => {
-          if (audioRef.current) {
-            audioRef.current.play();
-            setPlaying(true);
-            hasStarted.current = true;
-          }
-        }, 500);
+      } else {
+        setData((prev: any) => ({ ...prev, loading: false }));
       }
     } catch (err) {
       console.error("Gagal memuat lagu:", err);
@@ -348,11 +345,9 @@ function SpotifyWidget() {
   };
 
   const triggerPlay = () => {
-    if (!hasStarted.current && audioRef.current) {
-      audioRef.current.play().then(() => {
-        setPlaying(true);
-        hasStarted.current = true;
-      }).catch(err => console.log("Menunggu interaksi user:", err));
+    if (!hasStarted.current && audioRef.current && audioRef.current.readyState >= 2) {
+      audioRef.current.play().catch(err => console.log("Menunggu interaksi user:", err));
+      hasStarted.current = true;
     }
   };
 
@@ -364,33 +359,33 @@ function SpotifyWidget() {
   }, []);
 
   const togglePlay = () => {
-    if (playing) {
-      audioRef.current?.pause();
-    } else {
-      audioRef.current?.play();
+    if (audioRef.current) {
+      if (playing) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
     }
-    setPlaying(!playing);
   };
 
   const handleSearch = () => {
     if (input.trim()) {
       loadMusic(input);
-      setIsSearchOpen(false); // Tutup form pencarian setelah nyari lagu
-      setInput(""); // Kosongkan input
+      setIsSearchOpen(false);
+      setInput("");
     }
   };
 
-  if (!data) return null;
+  if (!data || (!data.title && !data.loading)) return null;
 
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] bg-black/60 backdrop-blur-xl border border-cyan-500/30 p-3 rounded-2xl shadow-[0_0_20px_rgba(6,182,212,0.2)] flex flex-col gap-3 z-50 transition-all duration-500 hover:border-purple-500/50">
       
-      {/* Baris Utama: Player */}
       <div className="flex items-center gap-4">
-        {/* Animasi Cover Album */}
+        {/* Cover Album */}
         <div className={`relative w-14 h-14 shrink-0 rounded-full overflow-hidden border-2 border-purple-500/50 shadow-[0_0_10px_rgba(168,85,247,0.5)] ${data.loading ? 'opacity-50' : 'opacity-100'}`}>
           <img
-            src={data.coverImage}
+            src={data.coverImage || 'https://via.placeholder.com/150/000000/06B6D4?text=...'}
             alt={data.title}
             className={`w-full h-full object-cover transition-all duration-700 ${playing && !data.loading ? 'animate-[spin_4s_linear_infinite]' : ''}`}
           />
@@ -409,7 +404,6 @@ function SpotifyWidget() {
 
         {/* Tombol Aksi */}
         <div className="flex items-center gap-2 shrink-0">
-          {/* Tombol Search */}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -422,13 +416,12 @@ function SpotifyWidget() {
             </svg>
           </button>
           
-          {/* Tombol Play */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               togglePlay();
             }}
-            disabled={data.loading}
+            disabled={data.loading || !data.audioUrl}
             className="w-10 h-10 flex items-center justify-center bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/50 text-cyan-400 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(6,182,212,0.3)] active:scale-90 disabled:opacity-50"
           >
             {playing ? "⏸" : "▶"}
@@ -436,7 +429,7 @@ function SpotifyWidget() {
         </div>
       </div>
 
-      {/* Baris Pencarian (Muncul kalau isSearchOpen bernilai true) */}
+      {/* Baris Pencarian */}
       <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isSearchOpen ? 'max-h-16 opacity-100' : 'max-h-0 opacity-0'}`}>
         <div className="flex w-full gap-2 pt-3 border-t border-white/10">
           <input 
@@ -458,13 +451,17 @@ function SpotifyWidget() {
         </div>
       </div>
 
-      <audio
-        ref={audioRef}
-        src={`/api/proxy?url=${encodeURIComponent(data.audioUrl)}`}
-        onPlay={() => setPlaying(true)}
-        onPause={() => setPlaying(false)}
-        onEnded={() => setPlaying(false)}
-      />
+      {/* Tag Audio: State 'playing' sekarang diurus sepenuhnya oleh onPlay dan onPause bawaan audio */}
+      {data.audioUrl && (
+        <audio
+          ref={audioRef}
+          src={`/api/proxy?url=${encodeURIComponent(data.audioUrl)}`}
+          autoPlay // Lagu langsung muter kalau udah selesai di-load
+          onPlay={() => setPlaying(true)}   // UI berubah pas audio beneran nyala
+          onPause={() => setPlaying(false)} // UI berubah pas audio beneran berhenti
+          onEnded={() => setPlaying(false)}
+        />
+      )}
     </div>
   );
 }
