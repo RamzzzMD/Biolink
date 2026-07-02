@@ -19,6 +19,7 @@ export default async function handler(req, res) {
 
         const cleanUrl = `https://open.spotify.com/track/${track.id}`;
         const dl = await downr(cleanUrl); 
+        console.log("HASIL DOWNR:", dl);
         const audioUrl = dl.downloadUrl || dl.url || dl.link; 
 
         if (!audioUrl) {
