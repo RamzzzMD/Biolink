@@ -138,5 +138,3 @@ export async function drawCardSpotify({ bg, cover, title, artist }) {
 
   return finalBuffer;
 }
-
-export { drawCardSpotify };
