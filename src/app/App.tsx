@@ -315,6 +315,77 @@ function Loader({ onDone }: { onDone: () => void }) {
   );
 }
 
+/* ─── Spotify Widget ─────────────────────────────────────────── */
+function SpotifyWidget({ dark }: { dark: boolean }) {
+  const [musicData, setMusicData] = useState<any>(null);
+  const [playing, setPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    // Karena udah di Vercel, cukup panggil path /api/music
+    fetch('/api/music')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) setMusicData(data);
+      })
+      .catch((err) => console.error("Gagal load lagu:", err));
+  }, []);
+
+  if (!musicData) return (
+    <div className="fade-up my-4 text-sm font-medium" style={{ animationDelay: "0.30s", color: dark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }}>
+      Sedang memuat lagu...
+    </div>
+  );
+
+  const togglePlay = () => {
+    if (audioRef.current) {
+      if (playing) audioRef.current.pause();
+      else audioRef.current.play();
+      setPlaying(!playing);
+    }
+  };
+
+  return (
+    <div className="fade-up w-full mt-2 mb-4 flex flex-col items-center gap-3" style={{ animationDelay: "0.30s" }}>
+      <img 
+        src={musicData.cardImage} 
+        alt="Spotify Card" 
+        style={{ 
+          width: "280px", 
+          borderRadius: "20px", 
+          boxShadow: dark ? "0 10px 30px rgba(0,0,0,0.5)" : "0 10px 30px rgba(0,0,0,0.15)" 
+        }} 
+      />
+      
+      <audio 
+        ref={audioRef} 
+        src={musicData.audioUrl} 
+        onEnded={() => setPlaying(false)} 
+      />
+
+      <button 
+        onClick={togglePlay}
+        style={{
+          padding: "10px 24px",
+          borderRadius: "99px",
+          background: dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)",
+          border: `1px solid ${dark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.1)"}`,
+          color: dark ? "#00f5ff" : "#bf00ff", // Nyambung sama aksen warna kamu
+          fontWeight: 600,
+          fontFamily: "'Space Grotesk', sans-serif",
+          cursor: "pointer",
+          backdropFilter: "blur(10px)",
+          transition: "all 0.2s ease"
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.background = dark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.1)"}
+        onMouseLeave={(e) => e.currentTarget.style.background = dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)"}
+      >
+        {playing ? "⏸ Pause" : "▶ Play"}
+      </button>
+    </div>
+  );
+}
+
 /* ─── App ────────────────────────────────────────────────────── */
 export default function App() {
   const [dark, setDark] = useState(true);
@@ -325,7 +396,7 @@ export default function App() {
     const saved = localStorage.getItem("ranzz-theme");
     if (saved) setDark(saved === "dark");
   }, []);
-
+  
   const toggleTheme = () => {
     const next = !dark;
     setDark(next);
@@ -536,7 +607,9 @@ export default function App() {
                 ))}
               </div>
             </div>
-
+            
+            <SpotifyWidget dark={dark} />
+            
             {/* Glass card with links */}
             <div
               className="fade-up"
