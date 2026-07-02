@@ -370,8 +370,8 @@ function SpotifyWidget({ dark }: { dark: boolean }) {
           </div>
           
           <audio 
-            ref={audioRef} // <-- Ini wajib ada biar ref-nya bisa ngontrol lagu
-            src={`${CORS_PROXY}${encodeURIComponent(data.audioUrl)}`} 
+            ref={audioRef}
+            src={`${CORS_PROXY}${data.audioUrl}`} 
             controls 
             autoPlay
             onPlay={() => setPlaying(true)}
