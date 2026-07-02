@@ -1,6 +1,6 @@
-import { Spotify } from './spotify.js';
-import { SpotifyDl } from './spotifydown-1.js';
-import { drawCardSpotify } from './spotifycard.js';
+import { Spotify } from './spotify.cjs';
+import { SpotifyDl } from './spotifydown-1.cjs';
+import { drawCardSpotify } from './spotifycard.cjs';
 
 const spotify = new Spotify();
 
