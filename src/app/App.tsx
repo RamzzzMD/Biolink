@@ -621,6 +621,7 @@ export default function App() {
                 <div style={{
                   width: 96, height: 96, borderRadius: "50%", padding: 3,
                   background: dark ? "linear-gradient(135deg,#0f0f2a,#1a0a2a)" : "linear-gradient(135deg,#e8f0ff,#f5eeff)",
+                  overflow: "hidden", // Penting: biar gambar nggak keluar dari lingkaran
                 }}>
                   <div style={{
                     width: "100%", height: "100%", borderRadius: "50%",
@@ -628,7 +629,12 @@ export default function App() {
                     background: dark ? "linear-gradient(135deg,#0f0f2a,#1a0a2a)" : "linear-gradient(135deg,#dde8ff,#eedeff)",
                     border: `2px solid ${dark ? "rgba(0,245,255,0.1)" : "rgba(191,0,255,0.15)"}`,
                   }}>
-                    <UserIcon />
+                    {/* Foto profil baru kamu */}
+                    <img 
+                      src="https://n.uguu.se/qJhYaYdi.jpg" 
+                      alt="Ranzz" 
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
                   </div>
                 </div>
               </div>
