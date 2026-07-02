@@ -319,26 +319,39 @@ function Loader({ onDone }: { onDone: () => void }) {
 function SpotifyWidget() {
   const [data, setData] = useState<any>(null);
   const [playing, setPlaying] = useState(false);
+  const [input, setInput] = useState("");
+  const [isSearchOpen, setIsSearchOpen] = useState(false); // State buat buka-tutup kolom pencarian
   const audioRef = useRef<HTMLAudioElement>(null);
   const hasStarted = useRef(false);
 
-  // Ambil lagu saat komponen pertama kali dimuat
   const loadMusic = async (query: string) => {
+    // Biar ada efek loading
+    setData((prev: any) => prev ? { ...prev, loading: true } : null);
     try {
       const res = await fetch(`/api/music?q=${encodeURIComponent(query)}`);
       const json = await res.json();
-      if (json.success) setData(json);
+      if (json.success) {
+        setData({ ...json, loading: false });
+        // Otomatis play kalau lagu baru berhasil dicari
+        setTimeout(() => {
+          if (audioRef.current) {
+            audioRef.current.play();
+            setPlaying(true);
+            hasStarted.current = true;
+          }
+        }, 500);
+      }
     } catch (err) {
       console.error("Gagal memuat lagu:", err);
+      setData((prev: any) => ({ ...prev, loading: false }));
     }
   };
 
-  // Fungsi sakti untuk nembus blokir autoplay browser
   const triggerPlay = () => {
     if (!hasStarted.current && audioRef.current) {
       audioRef.current.play().then(() => {
         setPlaying(true);
-        hasStarted.current = true; // Tandai kalau udah jalan biar ga ke-trigger terus
+        hasStarted.current = true;
       }).catch(err => console.log("Menunggu interaksi user:", err));
     }
   };
@@ -346,9 +359,7 @@ function SpotifyWidget() {
   useEffect(() => {
     loadMusic("BABYMONSTER CHOOM");
     
-    // Pasang pendengar: Begitu user ngeklik area manapun di web, lagu langsung jalan!
     document.addEventListener('click', triggerPlay, { once: true });
-    
     return () => document.removeEventListener('click', triggerPlay);
   }, []);
 
@@ -361,41 +372,92 @@ function SpotifyWidget() {
     setPlaying(!playing);
   };
 
-  if (!data) return null; // Sembunyikan player kalau data belum siap
+  const handleSearch = () => {
+    if (input.trim()) {
+      loadMusic(input);
+      setIsSearchOpen(false); // Tutup form pencarian setelah nyari lagu
+      setInput(""); // Kosongkan input
+    }
+  };
+
+  if (!data) return null;
 
   return (
-    // Memposisikan card di tengah-bawah layar secara melayang (fixed)
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] bg-black/40 backdrop-blur-xl border border-cyan-500/30 p-3 rounded-2xl shadow-[0_0_20px_rgba(6,182,212,0.2)] flex items-center gap-4 z-50 transition-all duration-500 hover:scale-105 hover:border-purple-500/50">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] bg-black/60 backdrop-blur-xl border border-cyan-500/30 p-3 rounded-2xl shadow-[0_0_20px_rgba(6,182,212,0.2)] flex flex-col gap-3 z-50 transition-all duration-500 hover:border-purple-500/50">
       
-      {/* Animasi Cover Album (Muter kayak piringan hitam kalau lagi play) */}
-      <div className="relative w-14 h-14 shrink-0 rounded-full overflow-hidden border-2 border-purple-500/50 shadow-[0_0_10px_rgba(168,85,247,0.5)]">
-        <img
-          src={data.coverImage}
-          alt={data.title}
-          className={`w-full h-full object-cover transition-all duration-700 ${playing ? 'animate-[spin_4s_linear_infinite]' : ''}`}
-        />
-        {/* Titik hitam di tengah biar mirip vinyl */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-black/80 rounded-full border border-gray-700"></div>
+      {/* Baris Utama: Player */}
+      <div className="flex items-center gap-4">
+        {/* Animasi Cover Album */}
+        <div className={`relative w-14 h-14 shrink-0 rounded-full overflow-hidden border-2 border-purple-500/50 shadow-[0_0_10px_rgba(168,85,247,0.5)] ${data.loading ? 'opacity-50' : 'opacity-100'}`}>
+          <img
+            src={data.coverImage}
+            alt={data.title}
+            className={`w-full h-full object-cover transition-all duration-700 ${playing && !data.loading ? 'animate-[spin_4s_linear_infinite]' : ''}`}
+          />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-black/80 rounded-full border border-gray-700"></div>
+        </div>
+
+        {/* Info Lagu */}
+        <div className="flex-1 overflow-hidden flex flex-col justify-center">
+          <h3 className="text-white font-bold text-sm truncate">
+            {data.loading ? "Mencari lagu..." : data.title}
+          </h3>
+          <p className="text-cyan-400 text-xs truncate">
+            {data.loading ? "Tunggu sebentar..." : data.artist}
+          </p>
+        </div>
+
+        {/* Tombol Aksi */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Tombol Search */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsSearchOpen(!isSearchOpen);
+            }}
+            className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-300 ${isSearchOpen ? 'bg-purple-500/30 text-purple-400 border border-purple-500/50' : 'bg-white/5 hover:bg-white/10 text-white/70 border border-white/10'}`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
+            </svg>
+          </button>
+          
+          {/* Tombol Play */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePlay();
+            }}
+            disabled={data.loading}
+            className="w-10 h-10 flex items-center justify-center bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/50 text-cyan-400 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(6,182,212,0.3)] active:scale-90 disabled:opacity-50"
+          >
+            {playing ? "⏸" : "▶"}
+          </button>
+        </div>
       </div>
 
-      {/* Info Lagu */}
-      <div className="flex-1 overflow-hidden flex flex-col justify-center">
-        <h3 className="text-white font-bold text-sm truncate">{data.title}</h3>
-        <p className="text-cyan-400 text-xs truncate">{data.artist}</p>
+      {/* Baris Pencarian (Muncul kalau isSearchOpen bernilai true) */}
+      <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isSearchOpen ? 'max-h-16 opacity-100' : 'max-h-0 opacity-0'}`}>
+        <div className="flex w-full gap-2 pt-3 border-t border-white/10">
+          <input 
+            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all"
+            placeholder="Ketik judul lagu..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          />
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSearch();
+            }} 
+            className="bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-400 border border-cyan-500/30 px-4 rounded-xl text-sm font-bold transition-all"
+          >
+            Cari
+          </button>
+        </div>
       </div>
 
-      {/* Tombol Play/Pause dengan efek Neon */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation(); // Biar klik tombol ini nggak bentrok sama trigger layar
-          togglePlay();
-        }}
-        className="w-10 h-10 shrink-0 flex items-center justify-center bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/50 text-cyan-400 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(6,182,212,0.3)] active:scale-90"
-      >
-        {playing ? "⏸" : "▶"}
-      </button>
-
-      {/* Tag Audio yang tersembunyi, pakai proxy lokal buatan kita */}
       <audio
         ref={audioRef}
         src={`/api/proxy?url=${encodeURIComponent(data.audioUrl)}`}
