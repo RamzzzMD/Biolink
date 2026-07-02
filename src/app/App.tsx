@@ -362,7 +362,8 @@ function SpotifyWidget({ dark }: { dark: boolean }) {
           </div>
           <audio 
              ref={audioRef} 
-             src={data.audioBase64 ? `data:audio/mp3;base64,${data.audioBase64}` : ""} 
+             src={data.audioUrl} 
+             controls 
           />
           <button 
             onClick={() => { playing ? audioRef.current?.pause() : audioRef.current?.play(); setPlaying(!playing); }}
