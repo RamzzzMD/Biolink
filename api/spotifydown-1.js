@@ -8,7 +8,7 @@ export async function SpotifyDl(url) {
     }, {
       'headers': {
         'content-type': 'application/json',
-        'user-agent': 'Mozilla/5.0 ...', // Sesuaikan user-agent Anda
+        'user-agent': 'Mozilla/5.0 (Linux; Android 16; NX729J) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.7499.34 Mobile Safari/537.36', // Sesuaikan user-agent Anda
       }
     });
     return {
