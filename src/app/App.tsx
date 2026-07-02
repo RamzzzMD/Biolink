@@ -360,7 +360,10 @@ function SpotifyWidget({ dark }: { dark: boolean }) {
             <h4 className={`font-bold ${dark ? 'text-white' : 'text-black'}`}>{data.title}</h4>
             <p className="text-xs opacity-60">{data.artist}</p>
           </div>
-          <audio ref={audioRef} src={data.audioUrl} />
+          <audio 
+             ref={audioRef} 
+             src={data.audioBase64 ? `data:audio/mp3;base64,${data.audioBase64}` : ""} 
+          />
           <button 
             onClick={() => { playing ? audioRef.current?.pause() : audioRef.current?.play(); setPlaying(!playing); }}
             className="text-cyan-400 font-bold text-sm bg-cyan-500/10 px-4 py-2 rounded-full"
