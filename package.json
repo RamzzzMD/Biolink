@@ -45,9 +45,9 @@
     "axios": "1.18.1",
     "sharp": "0.35.3",
     "crypto": "latest",
-    "cheerio": "1.2.0"
-    "tough-cookie": "6.0.1"
-    "axios-cookiejar-support": "7.0.0"
+    "cheerio": "1.2.0",
+    "tough-cookie": "6.0.1",
+    "axios-cookiejar-support": "7.0.0",
     "canvas-confetti": "1.9.4",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
