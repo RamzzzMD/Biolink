@@ -21,3 +21,5 @@ async function SpotifyDl(url) {
     return { status: false }
   }
 }
+
+module.exports = { drawCardSpotify };
