@@ -1,11 +1,10 @@
-// api/music.js
-const { Spotify } = require('./spotify.js');
-const { SpotifyDl } = require('./spotifydown-1.js');
-const { drawCardSpotify } = require('./spotifycard.js');
+import { Spotify } from './spotify.js';
+import { SpotifyDl } from './spotifydown-1.js';
+import { drawCardSpotify } from './spotifycard.js';
 
 const spotify = new Spotify();
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
     try {
         const trackId = req.query.id || '40c5f59047c64264'; 
         const trackInfo = await spotify.track(trackId);
