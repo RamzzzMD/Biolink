@@ -1,5 +1,5 @@
-process.env.FONTCONFIG_PATH = '/dev/null';
-process.env.FONTCONFIG_FILE = '/dev/null';
+delete process.env.FONTCONFIG_PATH;
+delete process.env.FONTCONFIG_FILE;
 
 import sharp from 'sharp';
 import axios from 'axios';
