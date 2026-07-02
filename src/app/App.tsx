@@ -316,30 +316,41 @@ function Loader({ onDone }: { onDone: () => void }) {
 }
 
 /* ─── Spotify Widget ─────────────────────────────────────────── */
-function SpotifyWidget() {
+function SpotifyWidget({ dark }: { dark: boolean }) {
   const [data, setData] = useState<any>(null);
+  const [search, setSearch] = useState("");
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  useEffect(() => {
-    fetch('/api/music').then(res => res.json()).then(setData);
-  }, []);
+  const fetchMusic = async (query = "", id = "") => {
+    const url = query ? `/api/music?search=${encodeURIComponent(query)}` : (id ? `/api/music?id=${id}` : '/api/music');
+    const res = await fetch(url).then(r => r.json());
+    if (res.success) setData(res);
+  };
 
-  if (!data) return null;
+  useEffect(() => { fetchMusic(); }, []); // Load default saat pertama kali
 
   return (
-    <div className="flex flex-col items-center gap-4 my-6 animate-in fade-in zoom-in duration-500">
-      <img src={data.cardImage} className="rounded-2xl shadow-2xl w-64 border border-white/10" alt="Music" />
-      <audio ref={audioRef} src={data.audioUrl} />
-      <button 
-        onClick={() => {
-          playing ? audioRef.current?.pause() : audioRef.current?.play();
-          setPlaying(!playing);
-        }}
-        className="px-6 py-2 rounded-full border border-cyan-500/30 bg-black/40 backdrop-blur-md text-cyan-400 font-bold hover:bg-cyan-500/20 transition-all"
-      >
-        {playing ? "⏸ Pause" : "▶ Play Music"}
-      </button>
+    <div className="flex flex-col items-center gap-3 my-6 w-full max-w-sm mx-auto p-4 rounded-3xl border border-white/10 bg-black/20 backdrop-blur-lg">
+      {data && (
+        <>
+          <img src={data.cardImage} className="rounded-xl w-40 shadow-xl" alt="Cover" />
+          <p className="text-white font-bold text-sm text-center">{data.title}</p>
+          <audio ref={audioRef} src={data.audioUrl} />
+          <button onClick={() => { playing ? audioRef.current?.pause() : audioRef.current?.play(); setPlaying(!playing); }} className="text-cyan-400 font-bold">
+            {playing ? "⏸ Pause" : "▶ Play"}
+          </button>
+        </>
+      )}
+      
+      <div className="flex gap-2 w-full mt-2">
+        <input 
+          placeholder="Cari lagu..." 
+          className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-white"
+          value={search} onChange={(e) => setSearch(e.target.value)}
+        />
+        <button onClick={() => fetchMusic(search)} className="bg-cyan-500/20 px-4 py-2 rounded-full text-cyan-400 text-sm">Cari</button>
+      </div>
     </div>
   );
 }
