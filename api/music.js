@@ -4,8 +4,6 @@ import SpotMate from './spotmate.js';
 const spotify = new Spotify();
 const spotmate = new SpotMate();
 
-process.removeAllListeners('warning');
-
 export default async function handler(req, res) {
     const query = req.query.q || "BABYMONSTER CHOOM"; 
     
