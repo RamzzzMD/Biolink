@@ -316,15 +316,14 @@ function Loader({ onDone }: { onDone: () => void }) {
 }
 
 /* ─── Spotify Widget ─────────────────────────────────────────── */
-function SpotifyWidget({ dark }: { dark: boolean }) {
+function SpotifyWidget() {
   const [data, setData] = useState<any>(null);
   const [playing, setPlaying] = useState(false);
-  const [input, setInput] = useState(""); // State buat nampung ketikan pencarian
   const audioRef = useRef<HTMLAudioElement>(null);
   const hasStarted = useRef(false);
 
+  // Ambil lagu saat komponen pertama kali dimuat
   const loadMusic = async (query: string) => {
-    setData(null); // Kosongkan data dulu biar ada efek "Memuat..."
     try {
       const res = await fetch(`/api/music?q=${encodeURIComponent(query)}`);
       const json = await res.json();
@@ -334,71 +333,76 @@ function SpotifyWidget({ dark }: { dark: boolean }) {
     }
   };
 
+  // Fungsi sakti untuk nembus blokir autoplay browser
   const triggerPlay = () => {
     if (!hasStarted.current && audioRef.current) {
       audioRef.current.play().then(() => {
         setPlaying(true);
-        hasStarted.current = true;
+        hasStarted.current = true; // Tandai kalau udah jalan biar ga ke-trigger terus
       }).catch(err => console.log("Menunggu interaksi user:", err));
     }
   };
 
   useEffect(() => {
     loadMusic("BABYMONSTER CHOOM");
-    document.addEventListener('click', triggerPlay);
+    
+    // Pasang pendengar: Begitu user ngeklik area manapun di web, lagu langsung jalan!
+    document.addEventListener('click', triggerPlay, { once: true });
+    
     return () => document.removeEventListener('click', triggerPlay);
   }, []);
 
-  return (
-    // Style background diubah sedikit biar ada efek transparan/glassmorphism yang keren
-    <div className="bg-red-900/40 backdrop-blur-md border border-red-500/20 rounded-[24px] p-5 w-[300px] min-h-[420px] flex flex-col items-center justify-between shadow-2xl">
-      
-      {/* INI YANG BIKIN ERROR: Pembuka logika {data ? (...)} sebelumnya hilang */}
-      {data ? (
-        <div className="flex flex-col items-center w-full">
-          <img 
-            src={data.coverImage} 
-            alt={data.title} 
-            className="w-[200px] h-[200px] object-cover rounded-2xl shadow-lg mt-2"
-          />
-            
-          <div className="text-center w-full mt-4 px-2">
-            <h2 className="text-white font-bold text-xl truncate">{data.title}</h2>
-            <p className="text-white/60 text-sm truncate">{data.artist}</p>
-          </div>
-          
-          <audio 
-            ref={audioRef}
-            src={`/api/proxy?url=${encodeURIComponent(data.audioUrl)}`} 
-            controls 
-            autoPlay
-            onPlay={() => setPlaying(true)}
-            onPause={() => setPlaying(false)}
-            className="mt-4 w-full h-10 rounded-full"
-          />
-        </div>
-      ) : (
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-sm font-semibold text-cyan-400 animate-pulse">Memuat CHOOM...</p>
-        </div>
-      )}
+  const togglePlay = () => {
+    if (playing) {
+      audioRef.current?.pause();
+    } else {
+      audioRef.current?.play();
+    }
+    setPlaying(!playing);
+  };
 
-      {/* Bagian bawah (Search Bar) - Dibuat nempel dengan tema neon/cyan */}
-      <div className="flex w-full gap-2 pt-4 mt-4 border-t border-white/10">
-        <input 
-          className="flex-1 bg-black/40 rounded-xl px-4 py-2 text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"
-          placeholder="Cari lagu lain..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && loadMusic(input)} // Bisa tekan Enter buat nyari
+  if (!data) return null; // Sembunyikan player kalau data belum siap
+
+  return (
+    // Memposisikan card di tengah-bawah layar secara melayang (fixed)
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] bg-black/40 backdrop-blur-xl border border-cyan-500/30 p-3 rounded-2xl shadow-[0_0_20px_rgba(6,182,212,0.2)] flex items-center gap-4 z-50 transition-all duration-500 hover:scale-105 hover:border-purple-500/50">
+      
+      {/* Animasi Cover Album (Muter kayak piringan hitam kalau lagi play) */}
+      <div className="relative w-14 h-14 shrink-0 rounded-full overflow-hidden border-2 border-purple-500/50 shadow-[0_0_10px_rgba(168,85,247,0.5)]">
+        <img
+          src={data.coverImage}
+          alt={data.title}
+          className={`w-full h-full object-cover transition-all duration-700 ${playing ? 'animate-[spin_4s_linear_infinite]' : ''}`}
         />
-        <button 
-          onClick={() => loadMusic(input)} 
-          className="bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-400 border border-cyan-500/30 px-4 rounded-xl text-sm font-bold transition-all"
-        >
-          Cari
-        </button>
+        {/* Titik hitam di tengah biar mirip vinyl */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-black/80 rounded-full border border-gray-700"></div>
       </div>
+
+      {/* Info Lagu */}
+      <div className="flex-1 overflow-hidden flex flex-col justify-center">
+        <h3 className="text-white font-bold text-sm truncate">{data.title}</h3>
+        <p className="text-cyan-400 text-xs truncate">{data.artist}</p>
+      </div>
+
+      {/* Tombol Play/Pause dengan efek Neon */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation(); // Biar klik tombol ini nggak bentrok sama trigger layar
+          togglePlay();
+        }}
+        className="w-10 h-10 shrink-0 flex items-center justify-center bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/50 text-cyan-400 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(6,182,212,0.3)] active:scale-90"
+      >
+        {playing ? "⏸" : "▶"}
+      </button>
+
+      {/* Tag Audio yang tersembunyi, pakai proxy lokal buatan kita */}
+      <audio
+        ref={audioRef}
+        src={`/api/proxy?url=${encodeURIComponent(data.audioUrl)}`}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => setPlaying(false)}
+      />
     </div>
   );
 }
