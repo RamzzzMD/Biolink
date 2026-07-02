@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
+const CORS_PROXY = "https://cors.rifkyshre.biz.id/";
+
 /* ─── Types ─────────────────────────────────────────────────── */
 interface Link {
   id: string;
@@ -361,9 +363,9 @@ function SpotifyWidget({ dark }: { dark: boolean }) {
             <p className="text-xs opacity-60">{data.artist}</p>
           </div>
           <audio 
-             ref={audioRef} 
-             src={data.audioUrl} 
-             controls 
+            src={`${CORS_PROXY}${encodeURIComponent(data.audioUrl)}`} 
+            controls 
+            autoPlay 
           />
           <button 
             onClick={() => { playing ? audioRef.current?.pause() : audioRef.current?.play(); setPlaying(!playing); }}
