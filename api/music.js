@@ -19,9 +19,10 @@ export default async function handler(req, res) {
 
         const cleanUrl = `https://open.spotify.com/track/${track.id}`;
         const dl = await downr(cleanUrl); 
-        console.log("HASIL DOWNR:", dl);
-        const audioUrl = dl.downloadUrl || dl.url || dl.link; 
-
+        let audioUrl = "";
+        if (dl.medias && dl.medias.length > 0) {
+            audioUrl = dl.medias[0].url; 
+        }
         if (!audioUrl) {
             return res.status(500).json({ success: false, message: "Gagal mendapatkan link download" });
         }
