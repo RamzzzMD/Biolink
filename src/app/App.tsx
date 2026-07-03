@@ -74,18 +74,6 @@ const SunIcon = () => (
   </svg>
 );
 
-const UserIcon = () => (
-  <svg viewBox="0 0 24 24" width="46" height="46" fill="none" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-    <defs>
-      <linearGradient id="userGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#00f5ff" />
-        <stop offset="100%" stopColor="#bf00ff" />
-      </linearGradient>
-    </defs>
-    <path stroke="url(#userGrad)" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-  </svg>
-);
-
 /* ─── Link data ──────────────────────────────────────────────── */
 const LINKS: Link[] = [
   {
@@ -151,20 +139,26 @@ const LINKS: Link[] = [
 ];
 
 /* ─── LinkButton ─────────────────────────────────────────────── */
-function LinkButton({ link, delay, dark }: { link: Link; delay: number; dark: boolean }) {
+function LinkButton({ link, delay, dark, onCustomClick }: { link: Link; delay: number; dark: boolean; onCustomClick?: (id: string, e: React.MouseEvent) => void }) {
   const [hovered, setHovered] = useState(false);
   const [ripples, setRipples] = useState<{ id: number; x: number; y: number }[]>([]);
   const btnRef = useRef<HTMLAnchorElement>(null);
   const counter = useRef(0);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
+    // Jalankan logika custom jika ada (misal: modal WhatsApp)
+    if (onCustomClick) {
+      onCustomClick(link.id, e);
+    }
+    
+    // Logika animasi klik
     const rect = btnRef.current!.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     const id = counter.current++;
     setRipples((prev) => [...prev, { id, x, y }]);
     setTimeout(() => setRipples((prev) => prev.filter((r) => r.id !== id)), 600);
-  }, []);
+  }, [link.id, onCustomClick]);
 
   return (
     <a
@@ -325,7 +319,6 @@ function SpotifyWidget() {
   const hasStarted = useRef(false);
 
   const loadMusic = async (query: string) => {
-    // 1. Kasih tau UI kalau kita lagi loading
     setData((prev: any) => prev ? { ...prev, loading: true } : { loading: true });
     
     try {
@@ -333,7 +326,6 @@ function SpotifyWidget() {
       const json = await res.json();
       
       if (json.success) {
-        // 2. Set data baru tanpa setTimeout. Audio tag akan otomatis play.
         setData({ ...json, loading: false });
       } else {
         setData((prev: any) => ({ ...prev, loading: false }));
@@ -451,14 +443,13 @@ function SpotifyWidget() {
         </div>
       </div>
 
-      {/* Tag Audio: State 'playing' sekarang diurus sepenuhnya oleh onPlay dan onPause bawaan audio */}
       {data.audioUrl && (
         <audio
           ref={audioRef}
           src={`/api/proxy?url=${encodeURIComponent(data.audioUrl)}`}
-          autoPlay // Lagu langsung muter kalau udah selesai di-load
-          onPlay={() => setPlaying(true)}   // UI berubah pas audio beneran nyala
-          onPause={() => setPlaying(false)} // UI berubah pas audio beneran berhenti
+          autoPlay 
+          onPlay={() => setPlaying(true)}   
+          onPause={() => setPlaying(false)} 
           onEnded={() => setPlaying(false)}
         />
       )}
@@ -472,6 +463,9 @@ export default function App() {
   const [toggleHovered, setToggleHovered] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
+  // STATE BARU: Untuk kontrol modal WhatsApp
+  const [waModalOpen, setWaModalOpen] = useState(false);
+
   useEffect(() => {
     const saved = localStorage.getItem("ranzz-theme");
     if (saved) setDark(saved === "dark");
@@ -481,6 +475,35 @@ export default function App() {
     const next = !dark;
     setDark(next);
     localStorage.setItem("ranzz-theme", next ? "dark" : "light");
+  };
+
+  // FUNGSI SAKTI: Membuka WhatsApp spesifik via Intent Android
+  const handleWaClick = (appType: 'personal' | 'business') => {
+    const phone = "6281214300828"; // <--- GANTI DENGAN NOMOR WA KAMU (misal: 628123456789)
+    const msg = "Halo Ranzz!";
+    const encodedMsg = encodeURIComponent(msg);
+    
+    // Fallback default (URL wa.me lama kamu)
+    let link = `https://wa.me/message/FOKEDL2PN6D4A1`; 
+
+    if (/android/i.test(navigator.userAgent)) {
+      if (appType === 'business') {
+        link = `intent://send?phone=${phone}&text=${encodedMsg}#Intent;package=com.whatsapp.w4b;scheme=whatsapp;end`;
+      } else {
+        link = `intent://send?phone=${phone}&text=${encodedMsg}#Intent;package=com.whatsapp;scheme=whatsapp;end`;
+      }
+    }
+
+    window.open(link, '_blank');
+    setWaModalOpen(false); // Tutup modal setelah diklik
+  };
+
+  // FUNGSI CEGATAN KLIK: Membuka Modal kalau tombolnya adalah "WhatsApp"
+  const handleLinkClick = (id: string, e: React.MouseEvent) => {
+    if (id === "whatsapp") {
+      e.preventDefault(); // Mencegah pindah halaman
+      setWaModalOpen(true); // Tampilkan modal
+    }
   };
 
   return (
@@ -621,7 +644,7 @@ export default function App() {
                 <div style={{
                   width: 96, height: 96, borderRadius: "50%", padding: 3,
                   background: dark ? "linear-gradient(135deg,#0f0f2a,#1a0a2a)" : "linear-gradient(135deg,#e8f0ff,#f5eeff)",
-                  overflow: "hidden", // Penting: biar gambar nggak keluar dari lingkaran
+                  overflow: "hidden", 
                 }}>
                   <div style={{
                     width: "100%", height: "100%", borderRadius: "50%",
@@ -629,7 +652,6 @@ export default function App() {
                     background: dark ? "linear-gradient(135deg,#0f0f2a,#1a0a2a)" : "linear-gradient(135deg,#dde8ff,#eedeff)",
                     border: `2px solid ${dark ? "rgba(0,245,255,0.1)" : "rgba(191,0,255,0.15)"}`,
                   }}>
-                    {/* Foto profil baru kamu */}
                     <img 
                       src="https://raw.githubusercontent.com/RamzzzMD/uploader-web/refs/heads/main/uploads/WhatsApp%20Image%202026-07-02%20at%2019.11.09.jpeg" 
                       alt="Ranzz" 
@@ -694,7 +716,7 @@ export default function App() {
               </div>
             </div>
             
-            <SpotifyWidget dark={dark} />
+            <SpotifyWidget />
             
             {/* Glass card with links */}
             <div
@@ -715,7 +737,13 @@ export default function App() {
               }}
             >
               {LINKS.map((link, i) => (
-                <LinkButton key={link.id} link={link} delay={400 + i * 80} dark={dark} />
+                <LinkButton 
+                  key={link.id} 
+                  link={link} 
+                  delay={400 + i * 80} 
+                  dark={dark} 
+                  onCustomClick={handleLinkClick} // <-- Prop baru untuk mengontrol klik
+                />
               ))}
             </div>
 
@@ -725,9 +753,59 @@ export default function App() {
                 Created by Ranzz
               </p>
             </div>
-
           </div>
         </main>
+
+        {/* ── MODAL PILIHAN WHATSAPP (Glassmorphism) ── */}
+        {waModalOpen && (
+          <div 
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md px-4" 
+            onClick={() => setWaModalOpen(false)}
+          >
+            <div 
+              className="bg-[#0a0a1f]/90 border border-green-500/30 p-6 rounded-3xl shadow-[0_0_30px_rgba(34,197,94,0.2)] w-full max-w-[320px] flex flex-col gap-4 transform transition-all fade-up" 
+              onClick={e => e.stopPropagation()} 
+              style={{ animationDelay: "0s" }}
+            >
+              <h3 className="text-white font-bold text-center text-lg mb-2" style={{ fontFamily: "'Space Grotesk',sans-serif" }}>
+                Buka WhatsApp via:
+              </h3>
+
+              {/* Tombol WA Biasa */}
+              <button 
+                onClick={() => handleWaClick('personal')} 
+                className="flex items-center justify-center gap-3 w-full bg-green-500/10 hover:bg-green-500/30 border border-green-500/50 text-green-400 py-3 rounded-2xl transition-all shadow-[0_0_15px_rgba(34,197,94,0.1)]"
+                style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600 }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232"/>
+                </svg>
+                WhatsApp Biasa
+              </button>
+
+              {/* Tombol WA Bisnis */}
+              <button 
+                onClick={() => handleWaClick('business')} 
+                className="flex items-center justify-center gap-3 w-full bg-cyan-500/10 hover:bg-cyan-500/30 border border-cyan-500/50 text-cyan-400 py-3 rounded-2xl transition-all shadow-[0_0_15px_rgba(6,182,212,0.1)]"
+                style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600 }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m-1.282-4.148c-.286-.062-.513-.156-.682-.284l.215-.992c.185.127.42.227.702.302.283.076.541.114.774.114.288 0 .513-.053.673-.158.16-.106.241-.252.241-.439 0-.156-.057-.282-.17-.38-.112-.097-.286-.17-.52-.22l-.707-.152c-.378-.08-.667-.213-.865-.398-.199-.186-.299-.442-.299-.77 0-.36.143-.655.43-.884.286-.23.673-.346 1.16-.346.257 0 .51.034.757.102.247.067.466.155.656.262l-.208.97c-.16-.098-.352-.18-.574-.247-.222-.066-.451-.099-.686-.099-.25 0-.448.046-.593.138-.145.093-.218.225-.218.397 0 .144.053.256.16.336.107.08.271.144.492.193l.707.15c.394.086.696.223.905.413.21.19.314.453.314.789 0 .375-.15.685-.449.927-.298.243-.72.364-1.267.364-.294 0-.585-.038-.874-.114z"/>
+                </svg>
+                WhatsApp Bisnis
+              </button>
+
+              {/* Tombol Batal */}
+              <button 
+                onClick={() => setWaModalOpen(false)} 
+                className="mt-2 text-white/50 text-sm hover:text-white transition-all underline decoration-white/30 underline-offset-4"
+              >
+                Kembali
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
     </>
   );
