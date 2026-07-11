@@ -1,12 +1,18 @@
-import axios from 'axios';
-import crypto from 'crypto';
-
 export default async function handler(req, res) {
-  // Menangkap parameter dari frontend lama maupun baru
+  // Tambahkan CORS agar audio/data bisa dibaca browser tanpa diblokir
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   const query = req.query.q || req.query.url || req.query.link || req.query.search;
 
   if (!query) {
-    return res.status(400).json({ status: false, message: "Parameter 'q' atau 'url' diperlukan." });
+    return res.status(400).json({ status: false, message: "Parameter diperlukan." });
   }
 
   try {
@@ -15,40 +21,34 @@ export default async function handler(req, res) {
     const nexray = await response.json();
 
     if (!nexray.status || !nexray.result) {
-      throw new Error("Lagu tidak ditemukan dari provider.");
+      return res.status(404).json({ status: false, message: "Lagu tidak ditemukan." });
     }
 
     const resData = nexray.result;
-
-    // Standarisasi output agar frontend lama tidak perlu diubah
     const formattedData = {
-      title: resData.title,
-      artist: resData.artist,
-      duration: resData.duration,
-      album: resData.album,
-      release_at: resData.release_at,
-      popularity: resData.popularity,
-      // Mapping untuk gambar
-      thumbnail: resData.thumbnail,
-      cover: resData.thumbnail,
-      image: resData.thumbnail,
-      // Mapping untuk URL Spotify asli
-      url: resData.url,
-      link: resData.url,
-      // Mapping PENTING untuk link audio/download agar pemutar musik di UI berfungsi
-      download_url: resData.download_url,
-      download: resData.download_url,
-      audio: resData.download_url,
-      mp3: resData.download_url
+      title: resData.title || "",
+      artist: resData.artist || "",
+      duration: resData.duration || "",
+      album: resData.album || "",
+      release_at: resData.release_at || "",
+      popularity: resData.popularity || 0,
+      thumbnail: resData.thumbnail || "",
+      cover: resData.thumbnail || "",
+      image: resData.thumbnail || "",
+      url: resData.url || "",
+      link: resData.url || "",
+      download_url: resData.download_url || "",
+      download: resData.download_url || "",
+      audio: resData.download_url || "",
+      mp3: resData.download_url || ""
     };
 
     return res.status(200).json({
       status: true,
-      author: "@nexray - ElrayyXml (Remapped)",
       data: formattedData,
-      result: formattedData // Di-double agar kompatibel jika frontend memakai .result atau .data
+      result: formattedData
     });
   } catch (error) {
-    return res.status(500).json({ status: false, message: error.message || "Terjadi kesalahan server." });
+    return res.status(500).json({ status: false, message: error.message });
   }
 }
