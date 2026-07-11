@@ -331,9 +331,9 @@ function SpotifyWidget() {
   const [input, setInput] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   
-  // STATE BARU: 'closed' (tutup) | 'full' (layar penuh) | 'mini' (dikecilkan)
   const [lyricsState, setLyricsState] = useState<'closed' | 'full' | 'mini'>('closed');
   const [currentTime, setCurrentTime] = useState(0);
+  const [lyricOffset, setLyricOffset] = useState(0);
   const [parsedLyrics, setParsedLyrics] = useState<{time: number, text: string}[]>([]);
 
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -345,13 +345,26 @@ function SpotifyWidget() {
     try {
       const res = await fetch(`/api/music?q=${encodeURIComponent(query)}`);
       const json = await res.json();
+      
       if (json.success) {
         setData({ ...json, loading: false });
-        if (json.lyrics?.hasSynced) {
-          setParsedLyrics(parseLrc(json.lyrics.synced));
+        setLyricOffset(0); 
+        
+        // --- LOGIKA BARU: OTOMATIS BUKA LIRIK MINI ---
+        if (json.lyrics) {
+          if (json.lyrics.hasSynced) {
+            setParsedLyrics(parseLrc(json.lyrics.synced));
+          } else {
+            setParsedLyrics([]);
+          }
+          // Jika lirik ada, otomatis buka dalam mode mini
+          setLyricsState('mini'); 
         } else {
           setParsedLyrics([]);
+          setLyricsState('closed'); // Tetap tutup jika lirik tidak ditemukan
         }
+        // ----------------------------------------------
+        
       } else {
         setData((prev: any) => ({ ...prev, loading: false }));
       }
@@ -388,13 +401,14 @@ function SpotifyWidget() {
     }
   };
 
-  // FUNGSI KHUSUS: Mengambil 1 baris lirik yang sedang aktif untuk Mode Mini
+  // Ambil lirik dengan perhitungan Offset
   const getActiveLyricText = () => {
     if (data?.loading) return "Mencari lirik...";
     if (!parsedLyrics.length) {
       return data?.lyrics?.plain ? "Lirik standar tersedia (Buka mode Penuh)" : "Lirik tidak tersedia 🎵";
     }
-    const active = [...parsedLyrics].reverse().find(lyric => currentTime >= lyric.time);
+    const adjTime = currentTime + lyricOffset;
+    const active = [...parsedLyrics].reverse().find(lyric => adjTime >= lyric.time);
     return active ? active.text : "🎵";
   };
 
@@ -406,16 +420,15 @@ function SpotifyWidget() {
         activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }
-  }, [currentTime, lyricsState]);
+  }, [currentTime, lyricsState, lyricOffset]);
 
   if (!data || (!data.title && !data.loading)) return null;
 
   return (
     <>
-      {/* Container Utama Player Melayang */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] flex flex-col gap-2 z-[60]">
         
-        {/* ── MODE MINI LIRIK (Muncul terapung tepat di atas player card) ── */}
+        {/* MODE MINI LIRIK */}
         {lyricsState === 'mini' && (
           <div 
             onClick={() => setLyricsState('full')}
@@ -429,7 +442,7 @@ function SpotifyWidget() {
           </div>
         )}
 
-        {/* Card Utama Music Player */}
+        {/* Player Card */}
         <div className="w-full bg-black/60 backdrop-blur-xl border border-cyan-500/30 p-3 rounded-2xl shadow-[0_0_20px_rgba(6,182,212,0.2)] flex flex-col gap-3 transition-all hover:border-purple-500/50">
           <div className="flex items-center gap-4">
             <div className={`relative w-14 h-14 shrink-0 rounded-full overflow-hidden border-2 border-purple-500/50 shadow-[0_0_10px_rgba(168,85,247,0.5)] ${data.loading ? 'opacity-50' : 'opacity-100'}`}>
@@ -443,7 +456,6 @@ function SpotifyWidget() {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {/* TOMBOL MIKROFON (Teks Lirik) */}
               <button
                 onClick={(e) => { 
                   e.stopPropagation(); 
@@ -454,19 +466,15 @@ function SpotifyWidget() {
               >
                 🎤
               </button>
-
-              {/* TOMBOL SEARCH */}
               <button onClick={(e) => { e.stopPropagation(); setIsSearchOpen(!isSearchOpen); }} className="w-9 h-9 flex items-center justify-center bg-white/5 hover:bg-white/10 text-white/70 rounded-full border border-white/10">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/></svg>
               </button>
-              
               <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} disabled={data.loading || !data.audioUrl} className="w-10 h-10 flex items-center justify-center bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/50 text-cyan-400 rounded-full transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)]">
                 {playing ? "⏸" : "▶"}
               </button>
             </div>
           </div>
 
-          {/* SEARCH BAR */}
           <div className={`overflow-hidden transition-all duration-500 ${isSearchOpen ? 'max-h-16 opacity-100' : 'max-h-0 opacity-0'}`}>
             <div className="flex w-full gap-2 pt-3 border-t border-white/10">
               <input className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50" placeholder="Cari lagu..." value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
@@ -489,39 +497,57 @@ function SpotifyWidget() {
         />
       )}
 
-      {/* ── MODAL LIRIK MODE PENUH (Ditambahkan Tombol Minimize 🗕) ── */}
+      {/* MODAL LIRIK MODE PENUH */}
       {lyricsState === 'full' && (
         <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end pb-32 bg-black/80 backdrop-blur-xl px-6" onClick={() => setLyricsState('closed')}>
           <div 
-            className="w-full max-w-[500px] h-[60vh] flex flex-col gap-6" 
+            className="w-full max-w-[500px] h-[65vh] flex flex-col gap-4" 
             onClick={e => e.stopPropagation()}
           >
-            {/* Header Lirik */}
-            <div className="flex justify-between items-center border-b border-white/10 pb-4">
-              <div>
-                <h2 className="text-white text-xl font-bold">{data.title}</h2>
-                <p className="text-cyan-400 text-sm">{data.artist}</p>
+            {/* Header & Controls */}
+            <div className="flex justify-between items-start border-b border-white/10 pb-4">
+              <div className="flex-1 pr-4">
+                <h2 className="text-white text-xl font-bold leading-tight">{data.title}</h2>
+                <p className="text-cyan-400 text-sm mt-1">{data.artist}</p>
               </div>
               
-              {/* Kontrol Panel: Minimize & Tutup */}
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => setLyricsState('mini')} 
-                  className="bg-cyan-500/10 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/40 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-[0_0_10px_rgba(6,182,212,0.2)]"
-                >
-                  🗕 Minimize
-                </button>
-                <button onClick={() => setLyricsState('closed')} className="bg-white/10 hover:bg-white/20 p-2 rounded-full text-white/70 text-xs">
-                  ✕
-                </button>
+              <div className="flex flex-col items-end gap-2">
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setLyricsState('mini')} className="bg-cyan-500/10 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/40 px-3 py-1.5 rounded-xl text-xs font-bold transition-all">🗕 Mini</button>
+                  <button onClick={() => setLyricsState('closed')} className="bg-white/10 hover:bg-white/20 p-2 rounded-full text-white/70 text-xs">✕</button>
+                </div>
               </div>
             </div>
+
+            {/* PANEL SYNC LIRIK */}
+            {data.lyrics?.hasSynced && (
+              <div className="flex items-center justify-center gap-4 bg-white/5 border border-white/10 rounded-xl py-2 px-4 w-max mx-auto shadow-[0_0_10px_rgba(0,0,0,0.3)]">
+                <button 
+                  onClick={() => setLyricOffset(p => p - 0.5)} 
+                  className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg text-white font-bold active:scale-95 transition-all"
+                  title="Perlambat lirik"
+                >-</button>
+                <div className="flex flex-col items-center min-w-[70px]">
+                  <span className="text-[10px] text-white/50 uppercase tracking-widest font-bold mb-0.5">Sync</span>
+                  <span className={`text-xs font-bold ${lyricOffset === 0 ? 'text-white' : 'text-cyan-400'}`}>
+                    {lyricOffset > 0 ? `+${lyricOffset.toFixed(1)}s` : `${lyricOffset.toFixed(1)}s`}
+                  </span>
+                </div>
+                <button 
+                  onClick={() => setLyricOffset(p => p + 0.5)} 
+                  className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg text-white font-bold active:scale-95 transition-all"
+                  title="Percepat lirik"
+                >+</button>
+              </div>
+            )}
 
             {/* Area Lirik Berjalan */}
             <div ref={lyricsContainerRef} className="flex-1 overflow-y-auto scrollbar-hide py-4 space-y-6 text-center mask-image-b" style={{ maskImage: "linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)" }}>
               {data.lyrics?.hasSynced && parsedLyrics.length > 0 ? (
                 parsedLyrics.map((lyric, idx) => {
-                  const isCurrent = currentTime >= lyric.time && (!parsedLyrics[idx + 1] || currentTime < parsedLyrics[idx + 1].time);
+                  const adjTime = currentTime + lyricOffset;
+                  const isCurrent = adjTime >= lyric.time && (!parsedLyrics[idx + 1] || adjTime < parsedLyrics[idx + 1].time);
+                  
                   return (
                     <p 
                       key={idx} 
@@ -545,6 +571,7 @@ function SpotifyWidget() {
     </>
   );
 }
+
 /* ─── App ────────────────────────────────────────────────────── */
 export default function App() {
   const [dark, setDark] = useState(true);
