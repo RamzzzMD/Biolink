@@ -314,7 +314,6 @@ function Loader({ onDone }: { onDone: () => void }) {
 const parseLrc = (lrcString: string) => {
   if (!lrcString) return [];
   return lrcString.split('\n').map(line => {
-    // Regex menangkap [menit:detik.milidetik] teks lirik
     const match = line.match(/\[(\d+):(\d+(?:\.\d+)?)\](.*)/);
     if (match) {
       return {
@@ -332,8 +331,8 @@ function SpotifyWidget() {
   const [input, setInput] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   
-  // STATE BARU UNTUK LIRIK
-  const [isLyricsOpen, setIsLyricsOpen] = useState(false);
+  // STATE BARU: 'closed' (tutup) | 'full' (layar penuh) | 'mini' (dikecilkan)
+  const [lyricsState, setLyricsState] = useState<'closed' | 'full' | 'mini'>('closed');
   const [currentTime, setCurrentTime] = useState(0);
   const [parsedLyrics, setParsedLyrics] = useState<{time: number, text: string}[]>([]);
 
@@ -348,7 +347,6 @@ function SpotifyWidget() {
       const json = await res.json();
       if (json.success) {
         setData({ ...json, loading: false });
-        // Jika ada lirik tersinkronisasi, langsung proses parse LRC
         if (json.lyrics?.hasSynced) {
           setParsedLyrics(parseLrc(json.lyrics.synced));
         } else {
@@ -390,79 +388,110 @@ function SpotifyWidget() {
     }
   };
 
-  // Autoscroll Lirik
+  // FUNGSI KHUSUS: Mengambil 1 baris lirik yang sedang aktif untuk Mode Mini
+  const getActiveLyricText = () => {
+    if (data?.loading) return "Mencari lirik...";
+    if (!parsedLyrics.length) {
+      return data?.lyrics?.plain ? "Lirik standar tersedia (Buka mode Penuh)" : "Lirik tidak tersedia 🎵";
+    }
+    const active = [...parsedLyrics].reverse().find(lyric => currentTime >= lyric.time);
+    return active ? active.text : "🎵";
+  };
+
+  // Autoscroll Lirik di Mode Penuh
   useEffect(() => {
-    if (isLyricsOpen && lyricsContainerRef.current) {
+    if (lyricsState === 'full' && lyricsContainerRef.current) {
       const activeElement = lyricsContainerRef.current.querySelector('.active-lyric');
       if (activeElement) {
         activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }
-  }, [currentTime, isLyricsOpen]);
+  }, [currentTime, lyricsState]);
 
   if (!data || (!data.title && !data.loading)) return null;
 
   return (
     <>
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] bg-black/60 backdrop-blur-xl border border-cyan-500/30 p-3 rounded-2xl shadow-[0_0_20px_rgba(6,182,212,0.2)] flex flex-col gap-3 z-[60] transition-all hover:border-purple-500/50">
+      {/* Container Utama Player Melayang */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] flex flex-col gap-2 z-[60]">
         
-        <div className="flex items-center gap-4">
-          <div className={`relative w-14 h-14 shrink-0 rounded-full overflow-hidden border-2 border-purple-500/50 shadow-[0_0_10px_rgba(168,85,247,0.5)] ${data.loading ? 'opacity-50' : 'opacity-100'}`}>
-            <img src={data.coverImage || 'https://via.placeholder.com/150/000000/06B6D4'} alt="cover" className={`w-full h-full object-cover ${playing && !data.loading ? 'animate-[spin_4s_linear_infinite]' : ''}`} />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-black/80 rounded-full border border-gray-700"></div>
+        {/* ── MODE MINI LIRIK (Muncul terapung tepat di atas player card) ── */}
+        {lyricsState === 'mini' && (
+          <div 
+            onClick={() => setLyricsState('full')}
+            className="w-full bg-black/70 backdrop-blur-xl border border-purple-500/40 px-4 py-2.5 rounded-xl flex items-center justify-between gap-2 shadow-[0_0_15px_rgba(168,85,247,0.2)] cursor-pointer hover:border-cyan-500/50 transition-all group animate-fade-in"
+          >
+            <span className="text-[10px] font-bold uppercase tracking-wider text-purple-400 shrink-0">Live</span>
+            <p className="flex-1 text-xs font-semibold text-white truncate text-center drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]">
+              {getActiveLyricText()}
+            </p>
+            <span className="text-xs text-cyan-400 opacity-60 group-hover:opacity-100 transition-opacity">🗖</span>
           </div>
-
-          <div className="flex-1 overflow-hidden flex flex-col justify-center">
-            <h3 className="text-white font-bold text-sm truncate">{data.loading ? "Mencari lagu..." : data.title}</h3>
-            <p className="text-cyan-400 text-xs truncate">{data.loading ? "Tunggu sebentar..." : data.artist}</p>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            {/* TOMBOL LIRIK BARU */}
-            <button
-              onClick={(e) => { e.stopPropagation(); setIsLyricsOpen(true); }}
-              disabled={data.loading || (!data.lyrics?.hasSynced && !data.lyrics?.plain)}
-              className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-300 ${data.lyrics ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/40 border border-purple-500/50' : 'bg-white/5 text-white/30 border border-white/5'}`}
-            >
-              🎤
-            </button>
-
-            {/* TOMBOL SEARCH */}
-            <button onClick={(e) => { e.stopPropagation(); setIsSearchOpen(!isSearchOpen); }} className="w-9 h-9 flex items-center justify-center bg-white/5 hover:bg-white/10 text-white/70 rounded-full border border-white/10">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/></svg>
-            </button>
-            
-            <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} disabled={data.loading || !data.audioUrl} className="w-10 h-10 flex items-center justify-center bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/50 text-cyan-400 rounded-full transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)]">
-              {playing ? "⏸" : "▶"}
-            </button>
-          </div>
-        </div>
-
-        {/* SEARCH BAR */}
-        <div className={`overflow-hidden transition-all duration-500 ${isSearchOpen ? 'max-h-16 opacity-100' : 'max-h-0 opacity-0'}`}>
-          <div className="flex w-full gap-2 pt-3 border-t border-white/10">
-            <input className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50" placeholder="Cari lagu..." value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
-            <button onClick={(e) => { e.stopPropagation(); handleSearch(); }} className="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-4 rounded-xl text-sm font-bold">Cari</button>
-          </div>
-        </div>
-
-        {data.audioUrl && (
-          <audio
-            ref={audioRef}
-            src={`/api/proxy?url=${encodeURIComponent(data.audioUrl)}`}
-            autoPlay 
-            onPlay={() => setPlaying(true)}   
-            onPause={() => setPlaying(false)} 
-            onEnded={() => setPlaying(false)}
-            // UPDATE: Pantau waktu audio berjalan untuk sinkronisasi lirik
-            onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
-          />
         )}
+
+        {/* Card Utama Music Player */}
+        <div className="w-full bg-black/60 backdrop-blur-xl border border-cyan-500/30 p-3 rounded-2xl shadow-[0_0_20px_rgba(6,182,212,0.2)] flex flex-col gap-3 transition-all hover:border-purple-500/50">
+          <div className="flex items-center gap-4">
+            <div className={`relative w-14 h-14 shrink-0 rounded-full overflow-hidden border-2 border-purple-500/50 shadow-[0_0_10px_rgba(168,85,247,0.5)] ${data.loading ? 'opacity-50' : 'opacity-100'}`}>
+              <img src={data.coverImage || 'https://via.placeholder.com/150/000000/06B6D4'} alt="cover" className={`w-full h-full object-cover ${playing && !data.loading ? 'animate-[spin_4s_linear_infinite]' : ''}`} />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-black/80 rounded-full border border-gray-700"></div>
+            </div>
+
+            <div className="flex-1 overflow-hidden flex flex-col justify-center">
+              <h3 className="text-white font-bold text-sm truncate">{data.loading ? "Mencari lagu..." : data.title}</h3>
+              <p className="text-cyan-400 text-xs truncate">{data.loading ? "Tunggu sebentar..." : data.artist}</p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {/* TOMBOL MIKROFON (Teks Lirik) */}
+              <button
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  setLyricsState(lyricsState === 'closed' ? 'full' : 'closed'); 
+                }}
+                disabled={data.loading || (!data.lyrics?.hasSynced && !data.lyrics?.plain)}
+                className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-300 ${lyricsState !== 'closed' ? 'bg-purple-500/30 text-purple-400 border border-purple-500/60 shadow-[0_0_10px_rgba(168,85,247,0.4)]' : 'bg-white/5 text-white/40 border border-white/10 hover:bg-white/10'}`}
+              >
+                🎤
+              </button>
+
+              {/* TOMBOL SEARCH */}
+              <button onClick={(e) => { e.stopPropagation(); setIsSearchOpen(!isSearchOpen); }} className="w-9 h-9 flex items-center justify-center bg-white/5 hover:bg-white/10 text-white/70 rounded-full border border-white/10">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/></svg>
+              </button>
+              
+              <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} disabled={data.loading || !data.audioUrl} className="w-10 h-10 flex items-center justify-center bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/50 text-cyan-400 rounded-full transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+                {playing ? "⏸" : "▶"}
+              </button>
+            </div>
+          </div>
+
+          {/* SEARCH BAR */}
+          <div className={`overflow-hidden transition-all duration-500 ${isSearchOpen ? 'max-h-16 opacity-100' : 'max-h-0 opacity-0'}`}>
+            <div className="flex w-full gap-2 pt-3 border-t border-white/10">
+              <input className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50" placeholder="Cari lagu..." value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
+              <button onClick={(e) => { e.stopPropagation(); handleSearch(); }} className="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-4 rounded-xl text-sm font-bold">Cari</button>
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      {/* ── MODAL LIRIK (KARAOKE MODE) ── */}
-      {isLyricsOpen && (
-        <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end pb-32 bg-black/80 backdrop-blur-xl px-6" onClick={() => setIsLyricsOpen(false)}>
+      {data.audioUrl && (
+        <audio
+          ref={audioRef}
+          src={`/api/proxy?url=${encodeURIComponent(data.audioUrl)}`}
+          autoPlay 
+          onPlay={() => setPlaying(true)}   
+          onPause={() => setPlaying(false)} 
+          onEnded={() => setPlaying(false)}
+          onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+        />
+      )}
+
+      {/* ── MODAL LIRIK MODE PENUH (Ditambahkan Tombol Minimize 🗕) ── */}
+      {lyricsState === 'full' && (
+        <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end pb-32 bg-black/80 backdrop-blur-xl px-6" onClick={() => setLyricsState('closed')}>
           <div 
             className="w-full max-w-[500px] h-[60vh] flex flex-col gap-6" 
             onClick={e => e.stopPropagation()}
@@ -473,16 +502,25 @@ function SpotifyWidget() {
                 <h2 className="text-white text-xl font-bold">{data.title}</h2>
                 <p className="text-cyan-400 text-sm">{data.artist}</p>
               </div>
-              <button onClick={() => setIsLyricsOpen(false)} className="bg-white/10 hover:bg-white/20 p-2 rounded-full text-white/70">
-                ✕
-              </button>
+              
+              {/* Kontrol Panel: Minimize & Tutup */}
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setLyricsState('mini')} 
+                  className="bg-cyan-500/10 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/40 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-[0_0_10px_rgba(6,182,212,0.2)]"
+                >
+                  🗕 Minimize
+                </button>
+                <button onClick={() => setLyricsState('closed')} className="bg-white/10 hover:bg-white/20 p-2 rounded-full text-white/70 text-xs">
+                  ✕
+                </button>
+              </div>
             </div>
 
             {/* Area Lirik Berjalan */}
             <div ref={lyricsContainerRef} className="flex-1 overflow-y-auto scrollbar-hide py-4 space-y-6 text-center mask-image-b" style={{ maskImage: "linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)" }}>
               {data.lyrics?.hasSynced && parsedLyrics.length > 0 ? (
                 parsedLyrics.map((lyric, idx) => {
-                  // Cek apakah baris ini yang sedang dinyanyikan
                   const isCurrent = currentTime >= lyric.time && (!parsedLyrics[idx + 1] || currentTime < parsedLyrics[idx + 1].time);
                   return (
                     <p 
@@ -494,7 +532,6 @@ function SpotifyWidget() {
                   );
                 })
               ) : data.lyrics?.plain ? (
-                // Jika lirik ada tapi tidak tersinkronisasi
                 <p className="text-white/70 whitespace-pre-wrap leading-loose text-lg font-medium">
                   {data.lyrics.plain}
                 </p>
@@ -508,7 +545,6 @@ function SpotifyWidget() {
     </>
   );
 }
-
 /* ─── App ────────────────────────────────────────────────────── */
 export default function App() {
   const [dark, setDark] = useState(true);
