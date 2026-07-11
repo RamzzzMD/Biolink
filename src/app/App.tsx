@@ -350,20 +350,17 @@ function SpotifyWidget() {
         setData({ ...json, loading: false });
         setLyricOffset(0); 
         
-        // --- LOGIKA BARU: OTOMATIS BUKA LIRIK MINI ---
         if (json.lyrics) {
           if (json.lyrics.hasSynced) {
             setParsedLyrics(parseLrc(json.lyrics.synced));
           } else {
             setParsedLyrics([]);
           }
-          // Jika lirik ada, otomatis buka dalam mode mini
           setLyricsState('mini'); 
         } else {
           setParsedLyrics([]);
-          setLyricsState('closed'); // Tetap tutup jika lirik tidak ditemukan
+          setLyricsState('closed');
         }
-        // ----------------------------------------------
         
       } else {
         setData((prev: any) => ({ ...prev, loading: false }));
@@ -401,7 +398,6 @@ function SpotifyWidget() {
     }
   };
 
-  // Ambil lirik dengan perhitungan Offset
   const getActiveLyricText = () => {
     if (data?.loading) return "Mencari lirik...";
     if (!parsedLyrics.length) {
@@ -412,7 +408,6 @@ function SpotifyWidget() {
     return active ? active.text : "🎵";
   };
 
-  // Autoscroll Lirik di Mode Penuh
   useEffect(() => {
     if (lyricsState === 'full' && lyricsContainerRef.current) {
       const activeElement = lyricsContainerRef.current.querySelector('.active-lyric');
@@ -432,25 +427,25 @@ function SpotifyWidget() {
         {lyricsState === 'mini' && (
           <div 
             onClick={() => setLyricsState('full')}
-            className="w-full bg-black/70 backdrop-blur-xl border border-purple-500/40 px-4 py-2.5 rounded-xl flex items-center justify-between gap-2 shadow-[0_0_15px_rgba(168,85,247,0.2)] cursor-pointer hover:border-cyan-500/50 transition-all group animate-fade-in"
+            className="w-full bg-black/70 backdrop-blur-xl border border-purple-500/40 px-4 py-2.5 rounded-xl flex items-center justify-between gap-2 shadow-[0_0_15px_rgba(168,85,247,0.2)] cursor-pointer hover:border-cyan-500/50 transition-all group animate-fade-in overflow-hidden"
           >
             <span className="text-[10px] font-bold uppercase tracking-wider text-purple-400 shrink-0">Live</span>
             <p className="flex-1 text-xs font-semibold text-white truncate text-center drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]">
               {getActiveLyricText()}
             </p>
-            <span className="text-xs text-cyan-400 opacity-60 group-hover:opacity-100 transition-opacity">🗖</span>
+            <span className="text-xs text-cyan-400 opacity-60 group-hover:opacity-100 transition-opacity shrink-0">🗖</span>
           </div>
         )}
 
         {/* Player Card */}
-        <div className="w-full bg-black/60 backdrop-blur-xl border border-cyan-500/30 p-3 rounded-2xl shadow-[0_0_20px_rgba(6,182,212,0.2)] flex flex-col gap-3 transition-all hover:border-purple-500/50">
+        <div className="w-full bg-black/60 backdrop-blur-xl border border-cyan-500/30 p-3 rounded-2xl shadow-[0_0_20px_rgba(6,182,212,0.2)] flex flex-col gap-3 transition-all hover:border-purple-500/50 overflow-hidden">
           <div className="flex items-center gap-4">
             <div className={`relative w-14 h-14 shrink-0 rounded-full overflow-hidden border-2 border-purple-500/50 shadow-[0_0_10px_rgba(168,85,247,0.5)] ${data.loading ? 'opacity-50' : 'opacity-100'}`}>
               <img src={data.coverImage || 'https://via.placeholder.com/150/000000/06B6D4'} alt="cover" className={`w-full h-full object-cover ${playing && !data.loading ? 'animate-[spin_4s_linear_infinite]' : ''}`} />
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-black/80 rounded-full border border-gray-700"></div>
             </div>
 
-            <div className="flex-1 overflow-hidden flex flex-col justify-center">
+            <div className="flex-1 min-w-0 flex flex-col justify-center">
               <h3 className="text-white font-bold text-sm truncate">{data.loading ? "Mencari lagu..." : data.title}</h3>
               <p className="text-cyan-400 text-xs truncate">{data.loading ? "Tunggu sebentar..." : data.artist}</p>
             </div>
@@ -477,8 +472,8 @@ function SpotifyWidget() {
 
           <div className={`overflow-hidden transition-all duration-500 ${isSearchOpen ? 'max-h-16 opacity-100' : 'max-h-0 opacity-0'}`}>
             <div className="flex w-full gap-2 pt-3 border-t border-white/10">
-              <input className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50" placeholder="Cari lagu..." value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
-              <button onClick={(e) => { e.stopPropagation(); handleSearch(); }} className="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-4 rounded-xl text-sm font-bold">Cari</button>
+              <input className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50" placeholder="Cari lagu..." value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
+              <button onClick={(e) => { e.stopPropagation(); handleSearch(); }} className="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-4 rounded-xl text-sm font-bold shrink-0">Cari</button>
             </div>
           </div>
         </div>
@@ -497,23 +492,24 @@ function SpotifyWidget() {
         />
       )}
 
-      {/* MODAL LIRIK MODE PENUH */}
+      {/* MODAL LIRIK MODE PENUH (TIDAK ADA SCROLL KANAN KIRI LAGI) */}
       {lyricsState === 'full' && (
-        <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end pb-32 bg-black/80 backdrop-blur-xl px-6" onClick={() => setLyricsState('closed')}>
+        <div className="fixed inset-0 z-[70] flex flex-col items-center justify-end pb-32 bg-black/80 backdrop-blur-xl px-4 sm:px-6 overflow-hidden" onClick={() => setLyricsState('closed')}>
           <div 
-            className="w-full max-w-[500px] h-[65vh] flex flex-col gap-4" 
+            className="w-full max-w-[500px] h-[65vh] flex flex-col gap-4 overflow-hidden" 
             onClick={e => e.stopPropagation()}
           >
             {/* Header & Controls */}
             <div className="flex justify-between items-start border-b border-white/10 pb-4">
-              <div className="flex-1 pr-4">
-                <h2 className="text-white text-xl font-bold leading-tight">{data.title}</h2>
-                <p className="text-cyan-400 text-sm mt-1">{data.artist}</p>
+              {/* Tambahan min-w-0 dan truncate agar teks panjang terpotong rapi */}
+              <div className="flex-1 min-w-0 pr-3">
+                <h2 className="text-white text-xl font-bold leading-tight truncate">{data.title}</h2>
+                <p className="text-cyan-400 text-sm mt-1 truncate">{data.artist}</p>
               </div>
               
-              <div className="flex flex-col items-end gap-2">
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setLyricsState('mini')} className="bg-cyan-500/10 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/40 px-3 py-1.5 rounded-xl text-xs font-bold transition-all">🗕 Mini</button>
+              <div className="flex flex-col items-end gap-2 shrink-0">
+                <div className="flex items-center gap-1.5">
+                  <button onClick={() => setLyricsState('mini')} className="bg-cyan-500/10 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/40 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap">🗕 Mini</button>
                   <button onClick={() => setLyricsState('closed')} className="bg-white/10 hover:bg-white/20 p-2 rounded-full text-white/70 text-xs">✕</button>
                 </div>
               </div>
@@ -521,13 +517,14 @@ function SpotifyWidget() {
 
             {/* PANEL SYNC LIRIK */}
             {data.lyrics?.hasSynced && (
-              <div className="flex items-center justify-center gap-4 bg-white/5 border border-white/10 rounded-xl py-2 px-4 w-max mx-auto shadow-[0_0_10px_rgba(0,0,0,0.3)]">
+              /* Mengubah w-max menjadi w-fit max-w-full agar tidak menjebol layar kecil */
+              <div className="flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-xl py-2 px-3 w-fit max-w-full mx-auto shadow-[0_0_10px_rgba(0,0,0,0.3)]">
                 <button 
                   onClick={() => setLyricOffset(p => p - 0.5)} 
-                  className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg text-white font-bold active:scale-95 transition-all"
+                  className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg text-white font-bold active:scale-95 transition-all shrink-0"
                   title="Perlambat lirik"
                 >-</button>
-                <div className="flex flex-col items-center min-w-[70px]">
+                <div className="flex flex-col items-center min-w-[60px]">
                   <span className="text-[10px] text-white/50 uppercase tracking-widest font-bold mb-0.5">Sync</span>
                   <span className={`text-xs font-bold ${lyricOffset === 0 ? 'text-white' : 'text-cyan-400'}`}>
                     {lyricOffset > 0 ? `+${lyricOffset.toFixed(1)}s` : `${lyricOffset.toFixed(1)}s`}
@@ -535,14 +532,14 @@ function SpotifyWidget() {
                 </div>
                 <button 
                   onClick={() => setLyricOffset(p => p + 0.5)} 
-                  className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg text-white font-bold active:scale-95 transition-all"
+                  className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg text-white font-bold active:scale-95 transition-all shrink-0"
                   title="Percepat lirik"
                 >+</button>
               </div>
             )}
 
             {/* Area Lirik Berjalan */}
-            <div ref={lyricsContainerRef} className="flex-1 overflow-y-auto scrollbar-hide py-4 space-y-6 text-center mask-image-b" style={{ maskImage: "linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)" }}>
+            <div ref={lyricsContainerRef} className="flex-1 overflow-y-auto scrollbar-hide py-4 space-y-6 text-center mask-image-b w-full" style={{ maskImage: "linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)" }}>
               {data.lyrics?.hasSynced && parsedLyrics.length > 0 ? (
                 parsedLyrics.map((lyric, idx) => {
                   const adjTime = currentTime + lyricOffset;
@@ -551,14 +548,14 @@ function SpotifyWidget() {
                   return (
                     <p 
                       key={idx} 
-                      className={`transition-all duration-300 text-lg md:text-2xl font-bold ${isCurrent ? 'active-lyric text-cyan-400 scale-110 drop-shadow-[0_0_10px_rgba(6,182,212,0.8)]' : 'text-white/40 scale-100 blur-[0.5px]'}`}
+                      className={`transition-all duration-300 text-lg md:text-2xl font-bold px-2 ${isCurrent ? 'active-lyric text-cyan-400 scale-110 drop-shadow-[0_0_10px_rgba(6,182,212,0.8)]' : 'text-white/40 scale-100 blur-[0.5px]'}`}
                     >
                       {lyric.text}
                     </p>
                   );
                 })
               ) : data.lyrics?.plain ? (
-                <p className="text-white/70 whitespace-pre-wrap leading-loose text-lg font-medium">
+                <p className="text-white/70 whitespace-pre-wrap leading-loose text-lg font-medium px-2">
                   {data.lyrics.plain}
                 </p>
               ) : (
