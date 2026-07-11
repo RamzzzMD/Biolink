@@ -1,39 +1,38 @@
-import { Spotify } from './spotify.js';
-import { downloadTrack } from './spotyloader.js';
-
-const spotify = new Spotify();
-
-process.removeAllListeners('warning');
-
 export default async function handler(req, res) {
-    const query = req.query.q || "BABYMONSTER CHOOM"; 
-    
-    try {
-        const searchRes = await spotify.search(query);
-        const track = searchRes.tracks[0];
-        
-        if (!track) {
-            return res.status(404).json({ success: false, message: "Lagu tidak ditemukan" });
-        }
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
-        const cleanUrl = `https://open.spotify.com/track/${track.id}`;
-        
-        // Panggil downloader baru
-        const dl = await downloadTrack(cleanUrl); 
+  const query = req.query.q || req.query.url || req.query.link || req.query.search || req.query.title;
 
-        if (!dl.success || !dl.download_url) {
-            return res.status(500).json({ success: false, message: "Gagal mendapatkan link download: " + (dl.error || "Unknown") });
-        }
-        
-        res.status(200).json({
-            success: true,
-            title: dl.metadata?.title || track.name,
-            artist: dl.metadata?.artist || track.artists.map(a => a.name).join(', '),
-            audioUrl: dl.download_url,
-            coverImage: dl.metadata?.image || track.album.images[0].url
-        });
-    } catch (e) {
-        console.error("Error API:", e);
-        res.status(500).json({ success: false, error: e.message });
+  if (!query) {
+    return res.status(400).json({ status: false, message: "Parameter diperlukan." });
+  }
+
+  try {
+    const apiUrl = `https://api.nexray.eu.cc/downloader/spotifyplay?q=${encodeURIComponent(query)}`;
+    const response = await fetch(apiUrl);
+    const nexray = await response.json();
+
+    if (!nexray.status || !nexray.result) {
+      return res.status(404).json({ status: false, message: "Musik tidak ditemukan." });
     }
+
+    const resData = nexray.result;
+
+    return res.status(200).json({
+      status: true,
+      title: resData.title || "",
+      artist: resData.artist || "",
+      audio: resData.download_url || "",
+      url: resData.download_url || "",
+      download: resData.download_url || "",
+      mp3: resData.download_url || "",
+      cover: resData.thumbnail || "",
+      thumbnail: resData.thumbnail || "",
+      data: resData,
+      result: resData
+    });
+  } catch (error) {
+    return res.status(500).json({ status: false, message: error.message });
+  }
 }
