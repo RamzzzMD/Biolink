@@ -1,8 +1,7 @@
-import axios from "axios";
-import * as cheerio from "cheerio";
-import crypto from "crypto";
-
 export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
   const query = req.query.q || req.query.url || req.query.link || req.query.search;
 
   if (!query) {
@@ -14,7 +13,9 @@ export default async function handler(req, res) {
     const response = await fetch(apiUrl);
     const nexray = await response.json();
 
-    if (!nexray.status || !nexray.result) throw new Error("Data tidak ditemukan.");
+    if (!nexray.status || !nexray.result) {
+      return res.status(404).json({ status: false, message: "Data tidak ditemukan." });
+    }
 
     const resData = nexray.result;
 
@@ -22,7 +23,6 @@ export default async function handler(req, res) {
       status: true,
       result: {
         ...resData,
-        // Tambahkan alias di dalam object result
         cover: resData.thumbnail,
         image: resData.thumbnail,
         download: resData.download_url,
